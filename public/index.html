@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Pong Game</title>
+	<link href="/tailwind.css" rel="stylesheet" />
+	<link rel="icon" type="image/x-icon" href="/favicon.ico">
+</head>
+<body class="bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white w-full min-h-screen">
+
+	<!-- Nav global -->
+	<nav id="main-nav" class="flex items-center p-4 bg-gray-950 shadow-[0_0_25px_rgba(0,0,255,0.35)] border-b border-blue-500/20 w-full justify-between z-50">
+		<div class="flex gap-4">
+			<button id="nav-home" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition">Accueil</button>
+			<button id="nav-history" class="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold shadow transition">Historique</button>
+			<button id="nav-profile" class="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow transition">Profil</button>
+			<button id="nav-logout" class="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white font-semibold shadow transition">Déconnexion</button>
+		</div>
+		<div id="nav-userbox" class="flex items-center gap-2 ml-auto">
+			<img id="nav-avatar" src="/avatars/avatar_default.png" alt="avatar"
+				style="width:64px;height:64px;max-width:64px;max-height:64px;object-fit:cover;"
+				class="rounded-full border-2 border-indigo-500 shadow-[0_0_16px_rgba(99,102,241,0.5)]" />
+			<span id="nav-username" class="font-semibold text-blue-200 drop-shadow tracking-wide"></span>
+		</div>
+	</nav>
+
+	<!-- Zone de rendu SPA -->
+	<div id="content"></div>
+
+	<!-- JS app -->
+	<script type="module">
+		import { Router } from '/frontend/router.js';
+		import { routes } from '/frontend/routeshtml.js';
+		new Router(routes);
+	</script>
+</body>
+</html>

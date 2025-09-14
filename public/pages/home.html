@@ -1,0 +1,49 @@
+<div id="home-view" class="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-gray-800 px-4 min-h-[calc(100vh-6rem)] gap-8">
+
+	<!-- Bloc global (choix du mode + contrôles) -->
+	<div class="bg-gray-950 p-6 rounded-2xl shadow-[0_0_25px_rgba(0,0,255,0.4)] border border-blue-500/20 w-full max-w-md text-center">
+		<h1 class="text-3xl font-bold text-blue-400 mb-4">Jouer à Pong</h1>
+		<div class="flex flex-col md:flex-row items-center justify-center gap-4 mb-4">
+			<label class="text-lg text-blue-200" for="modeSelect">Mode :</label>
+			<select id="modeSelect" class="px-4 py-2 rounded bg-gray-100 text-black border border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-40">
+				<option value="2d">2D</option>
+				<option value="3d">3D</option>
+			</select>
+		</div>
+		<div class="text-blue-200 text-sm">
+			<p class="mb-1">Contrôles : W ↑	S ↓</p>
+		</div>
+	</div>
+
+	<!-- Les 3 blocs de jeu -->
+	<div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl">
+
+		<!-- Bloc 1 vs 1 -->
+		<div class="bg-gray-950 p-6 rounded-2xl shadow-[0_0_25px_rgba(0,0,255,0.4)] border border-blue-500/20 flex flex-col justify-between items-center h-auto min-h-[10rem]">
+			<h2 class="text-2xl font-bold text-blue-400 text-center mb-4">Matchmaking<br><span class="text-base text-blue-200 font-normal">Joueur vs Joueur</span></h2>
+			<button id="btn-matchmaking"
+				class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-lg font-semibold rounded-lg shadow-lg transition transform hover:scale-105 hover:brightness-110 mt-auto">
+				Jouer
+			</button>
+		</div>
+
+		<!-- Bloc vs Bot -->
+		<div class="bg-gray-950 p-6 rounded-2xl shadow-[0_0_25px_rgba(0,0,255,0.4)] border border-blue-500/20 flex flex-col justify-between items-center h-auto min-h-[10rem]">
+			<h2 class="text-2xl font-bold text-blue-400 text-center mb-4">1 vs BOT</h2>
+			<button id="btn-vs-bot"
+				class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-lg font-semibold rounded-lg shadow-lg transition transform hover:scale-105 hover:brightness-110 mt-auto">
+				Jouer
+			</button>
+		</div>
+
+		<!-- Bloc Tournoi -->
+		<div class="bg-gray-950 p-6 rounded-2xl shadow-[0_0_25px_rgba(0,0,255,0.4)] border border-blue-500/20 flex flex-col justify-between items-center h-auto min-h-[10rem]">
+			<h2 class="text-2xl font-bold text-blue-400 text-center mb-4">Tournoi en ligne</h2>
+			<button id="btn-tournament"
+				class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-lg font-semibold rounded-lg shadow-lg transition transform hover:scale-105 hover:brightness-110 mt-auto">
+				Jouer
+			</button>
+		</div>
+
+	</div>
+</div>

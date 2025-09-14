@@ -1,0 +1,35 @@
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-gray-800 px-4">
+	<form id="register-form" class="bg-gray-950 p-8 rounded-2xl shadow-[0_0_25px_rgba(0,0,255,0.4)] w-full max-w-sm border border-blue-500/20">
+		<h1 class="text-3xl text-center font-bold text-blue-400 mb-6 tracking-wide">📝 Inscription</h1>
+
+		<label class="block text-blue-300 text-sm mb-1">Nom d'utilisateur</label>
+		<input
+			type="text"
+			id="register-username"
+			required
+			placeholder="Entrer votre nom"
+			autocomplete="username"
+			class="w-full px-4 py-2 mb-4 rounded-md bg-gray-100 text-black border border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+		>
+
+		<label class="block text-blue-300 text-sm mb-1">Mot de passe</label>
+		<input
+			type="password"
+			id="register-password"
+			required
+			placeholder="Votre mot de passe"
+			autocomplete="new-password"
+			class="w-full px-4 py-2 mb-4 rounded-md bg-gray-100 text-black border border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+		>
+
+		<button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold transition">
+			S'enregistrer
+		</button>
+
+		<button type="button" id="back-to-login-link" class="mt-2 w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md font-semibold transition">
+			Retour à la connexion
+		</button>
+
+		<p id="register-error" class="text-center text-sm text-red-400 mt-4"></p>
+	</form>
+</div>

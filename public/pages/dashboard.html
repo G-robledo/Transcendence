@@ -1,0 +1,52 @@
+<div id="dashboard-view" class="flex flex-col items-center min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-800 px-4">
+	<h1 class="text-4xl mb-8 mt-12 text-center font-extrabold text-blue-400 drop-shadow-xl tracking-tight">
+		Mon Dashboard
+	</h1>
+	<div class="flex flex-col md:flex-row gap-8 w-full max-w-4xl">
+
+		<!-- Bloc Stats -->
+		<div class="flex-1 bg-gray-950 rounded-2xl shadow-[0_0_25px_rgba(0,0,255,0.4)] border border-blue-500/20 p-8 flex flex-col items-center mb-8 md:mb-0">
+			<h2 class="text-2xl font-bold mb-6 text-blue-400 drop-shadow">Statistiques</h2>
+			<ul class="space-y-3 w-full max-w-xs text-lg">
+				<li class="flex justify-between">
+					<span class="text-blue-100">Victoires</span>
+					<span id="stat-win" class="font-bold text-green-400">0</span>
+				</li>
+				<li class="flex justify-between">
+					<span class="text-blue-100">Winrate</span>
+					<span id="stat-winrate" class="font-bold text-indigo-400">0%</span>
+				</li>
+				<li class="flex justify-between">
+					<span class="text-blue-100">Parties jouées</span>
+					<span id="stat-played" class="font-bold text-blue-400">0</span>
+				</li>
+				<li class="flex justify-between">
+					<span class="text-blue-100">Tournois joués</span>
+					<span id="stat-tourn-played" class="font-bold text-pink-400">0</span>
+				</li>
+				<li class="flex justify-between">
+					<span class="text-blue-100">Tournois gagnés</span>
+					<span id="stat-tourn-win" class="font-bold text-emerald-400">0</span>
+				</li>
+			</ul>
+		</div>
+
+		<!-- Bloc Historique -->
+		<div class="flex-1 bg-gray-950 rounded-2xl shadow-[0_0_25px_rgba(0,0,255,0.4)] border border-blue-500/20 p-8 overflow-x-auto">
+			<h2 class="text-2xl font-bold mb-6 text-indigo-400 drop-shadow">Historique des parties</h2>
+			<table class="w-full min-w-[300px] text-left border-separate border-spacing-y-2">
+				<thead>
+					<tr>
+						<th class="pb-2 text-blue-200 font-medium">Date</th>
+						<th class="pb-2 text-blue-200 font-medium">Adversaire</th>
+						<th class="pb-2 text-blue-200 font-medium">Score</th>
+						<th class="pb-2 text-blue-200 font-medium">Résultat</th>
+					</tr>
+				</thead>
+				<tbody id="history-table">
+					<!-- Rempli dynamiquement -->
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
