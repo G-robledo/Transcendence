@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   wsHandler.ts                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: grobledo <grobledo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: grobledo <grobledo@student.42perpignan.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 19:35:19 by grobledo          #+#    #+#             */
-/*   Updated: 2025/07/10 14:48:57 by grobledo         ###   ########.fr       */
+/*   Updated: 2025/07/11 14:55:54 by grobledo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,6 +79,35 @@ export async function gameWebSocket(app: FastifyInstance) {
 		}
 		if (!username)
 			username = "Anonyme"; // empeche un blocage pour username null ne devrait jamais arriver
+
+		//jeu local
+		if (mode === "local") {
+			const roomId: string = "local-" + Math.random().toString(36).slice(2, 10);
+			rooms[roomId] = {
+				game: new Game(config),
+				clients: [
+					{ id: 'left', username: 'Joueur1', socket: socket },   // le même socket va gérer les deux
+					{ id: 'right', username: 'Joueur2', socket: socket }
+				],
+				inputs: {
+					left: { up: false, down: false },
+					right: { up: false, down: false }
+				},
+				gameStarted: true,
+				lastScore: { left: 0, right: 0 },
+				lastScorer: null
+			};
+			// on notifie le front
+			socket.send(JSON.stringify({
+				type: "match_found",
+				roomId: roomId,
+				side: "left", // peu importe, il gère les deux
+				opponent: "local",
+				local: true
+			}));
+			console.log(`[SOCKET][MATCHMAKING][LOCAL] Création d'une partie locale dans la room ${roomId}`);
+			return;
+		}
 
 		// reconnexion a une room contre un bot 
 		if (mode === 'bot') {
@@ -278,6 +307,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 		// on attribue les sides aux joueurs. si quelqu'un de connecte mais pas joueur on lui attribue spectator
 		let side: PlayerId | 'spectator' = 'spectator';
 		let clientFound: { id: PlayerId; username: string; socket: WebSocket | null } | undefined = undefined;
+
 		for (let i = 0; i < room.clients.length; i++) {
 			if (room.clients[i].username === username) {
 				side = room.clients[i].id;
@@ -285,6 +315,13 @@ export async function gameWebSocket(app: FastifyInstance) {
 				break;
 			}
 		}
+
+		if (side === 'spectator' && roomId.startsWith('local-')) {
+			// Matchmaking local : assigne toujours le joueur côté 'left'
+			side = 'left';
+			clientFound = room.clients.find(c => c.id === 'left');
+		}
+
 
 		// bloc pour le refresh, si joueur actif et pas bot on reassocie une socket
 		if (side !== 'spectator' && clientFound !== undefined) {
@@ -345,8 +382,12 @@ export async function gameWebSocket(app: FastifyInstance) {
 					if (!room._ready) room._ready = new Set();
 					room._ready.add(username);
 
-					const playerCount = room.clients.filter(c => c.id === 'left' || c.id === 'right').length;
-					if (room._ready.size >= playerCount) {
+					const realPlayers = room.clients.filter(c => c.id === 'left' || c.id === 'right');
+					const playerCount = realPlayers.length;
+					const connectedPlayers = realPlayers.filter(c => c.socket !== null);
+
+					// Si tous les joueurs attendus sont revenus et ont envoyé "ready"
+					if (room._ready.size >= playerCount && connectedPlayers.length === playerCount) {
 						room.isPaused = false;
 						room.pauseUntil = undefined;
 						room._ready.clear();
@@ -361,15 +402,27 @@ export async function gameWebSocket(app: FastifyInstance) {
 							}
 						}
 					}
+					// Sinon : on attend soit d'autres "ready", soit la fin du timeout
 					return;
 				}
 
 				// Sinon message normal (inputs)
-				const input: InputMessage = data;
-				if (input.player === side && (side === 'left' || side === 'right')) {
-					room.inputs[side] = input.input;
+				if (data.inputs && typeof data.inputs === 'object') {
+					// MODE LOCAL : mettre à jour les deux côtés en même temps
+					if ('left' in data.inputs && 'right' in data.inputs) {
+						room.inputs.left = data.inputs.left;
+						room.inputs.right = data.inputs.right;
+					}
+				} 
+				else {
+					// MODE ONLINE/BOT
+					const input: InputMessage = data;
+					if (input.player === side && (side === 'left' || side === 'right')) {
+						room.inputs[side] = input.input;
+					}
 				}
-			} catch (err) {
+			} 
+			catch (err) {
 				console.error('Invalid input:', err);
 			}
 		});
@@ -390,6 +443,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 
 			// on pause 30 secondes en cas de deco pour permettre la reco
 			if (shouldPause) {
+				console.log(`[SOCKET][ROOM][PAUSE] Pause déclenchée, timer dans room ${roomId}`);
 				room.isPaused = true;
 				const until: number = Date.now() + 30000;
 				room.pauseUntil = until;
@@ -403,6 +457,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 				if (room.disconnectTimer)
 					clearTimeout(room.disconnectTimer);
 				room.disconnectTimer = setTimeout(() => {
+					console.log(`[SOCKET][ROOM][TIMEOUT] Timer fini dans room ${roomId}`);
 					let winner: string | null = null;
 					const lastConnected = room.clients.find(c => (c.id === 'left' || c.id === 'right') && c.socket !== null);
 					if (lastConnected)
@@ -418,6 +473,11 @@ export async function gameWebSocket(app: FastifyInstance) {
 					room.isPaused = false;
 					room.pauseUntil = undefined;
 
+					for (const c of room.clients) {
+						if (c.socket && c.socket.readyState === 1) {
+							c.socket.send(JSON.stringify({ type: "end" }));
+						}
+					}
 					const allGoneAfterTimeout: boolean = room.clients.filter(c => c.socket !== null).length === 0;
 					if (allGoneAfterTimeout) {
 						if (room.botSide !== undefined)

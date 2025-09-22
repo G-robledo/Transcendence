@@ -3,17 +3,20 @@
 /*                                                        :::      ::::::::   */
 /*   pong3d.ts                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: grobledo <grobledo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: grobledo <grobledo@student.42perpignan.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/22 21:08:22 by grobledo          #+#    #+#             */
-/*   Updated: 2025/07/10 16:50:13 by grobledo         ###   ########.fr       */
+/*   Updated: 2025/07/11 15:48:09 by grobledo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 import type { GameState } from '../shared/type.js';
 import * as BABYLON from 'babylonjs';
 
-
+let babylonEngine: BABYLON.Engine | null = null;
+let babylonScene: BABYLON.Scene | null = null;
+let keydownHandler: ((event: KeyboardEvent) => void) | null = null;
+let keyupHandler: ((event: KeyboardEvent) => void) | null = null;
 
 // === CHARGEMENT Babylon + GUI ===
 function loadBabylonWithGUI() {
@@ -59,49 +62,13 @@ let isPaused = false;
 let endInfo: { winner: string } | null = null;
 let pauseInfo: { scorer?: string, until?: number } | null = null;
 let pauseTimerInterval: any = null;
-let keyUp = false;
-let keyDown = false;
-let babylonEngine: BABYLON.Engine | null = null;
-let babylonScene: BABYLON.Scene | null = null;
 
 // gestion websocket et imput
 
-// Envoie input au serveur (uniquement si la game est active)
-function sendInput() {
-	if (wsGame && wsGame.readyState === WebSocket.OPEN && !isPaused && !endInfo && playerSide !== null) {
-		wsGame.send(JSON.stringify({ player: playerSide, input: { up: keyUp, down: keyDown } }));
-	}
-}
 
-// Listeners clavier pour contrôler la raquette
-function onKeyDown(event: KeyboardEvent) {
-	if (isPaused || endInfo) 
-		return;
-	if (event.key === 'w') {
-		keyUp = true;
-		sendInput();
-	}
-	if (event.key === 's') {
-		keyDown = true;
-		sendInput();
-	}
-}
-function onKeyUp(event: KeyboardEvent) {
-	if (isPaused || endInfo)
-		return;
-	if (event.key === 'w') {
-		keyUp = false;
-		sendInput();
-	}
-	if (event.key === 's') {
-		keyDown = false;
-		sendInput();
-	}
-}
 
 // Nettoie les sockets et l’etat (à appeler avant de quitter la page de jeu)
 export function cleanupGame() {
-	console.log("CLEANUP FUNCTION CALLED");
 	if (typeof wsGame !== "undefined" && wsGame) {
 		if (wsGame.readyState === WebSocket.OPEN || wsGame.readyState === WebSocket.CONNECTING) {
 			wsGame.close(1000, "Cleanup: user quit game page");
@@ -123,8 +90,16 @@ export function cleanupGame() {
 		clearInterval(pauseTimerInterval);
 		pauseTimerInterval = null;
 	}
+	if (keydownHandler) {
+		window.removeEventListener('keydown', keydownHandler);
+		keydownHandler = null;
+	}
+	if (keyupHandler) {
+		window.removeEventListener('keyup', keyupHandler);
+		keyupHandler = null;
+	}
 
-	if (babylonScene){
+	if (babylonScene) {
 		babylonScene.dispose();
 		babylonScene = null;
 	}
@@ -133,10 +108,6 @@ export function cleanupGame() {
 		babylonEngine.dispose();
 		babylonEngine = null;
 	}
-	babylonScene = null;
-	messageText = undefined;
-	window.removeEventListener('keydown', onKeyDown);
-	window.removeEventListener('keyup', onKeyUp);
 }
 
 // === INITIALISATION DU JEU (main entry) ===
@@ -321,9 +292,102 @@ function startGameWS(
 	// dessin 3d
 	setupBabylonScene(BABYLON, canvas);
 
-	// inputs
-	window.addEventListener('keydown', onKeyDown);
-	window.addEventListener('keyup', onKeyUp);
+// Envoie input au serveur (uniquement si la game est active)
+		// gestion des input et envoi au serveur
+	const isLocalMode = (matchmaking === "local");
+
+		// Variables pour online (1 joueur sur ce clavier)
+	let keyUp = false, keyDown = false;
+
+		// Variables pour local (2 joueurs sur ce clavier)
+	let keyUpLeft = false, keyDownLeft = false;
+	let keyUpRight = false, keyDownRight = false;
+
+	function sendInput() {
+		if (wsGame && wsGame.readyState === WebSocket.OPEN && !isPaused && !endInfo) {
+			if (isLocalMode) {
+				wsGame.send(JSON.stringify({
+					inputs: {
+						left:  { up: keyUpLeft,  down: keyDownLeft  },
+						right: { up: keyUpRight, down: keyDownRight }
+					}
+				}));
+			} 
+			else {
+				wsGame.send(JSON.stringify({
+					player: playerSide,
+					input: { up: keyUp, down: keyDown } // si pas localmode 1 seule key a envoyer
+				}));
+			}
+		}
+	}
+		let keydownHandler = function(event: KeyboardEvent) {
+	if (isPaused || endInfo) return;
+	if (isLocalMode) {
+		switch (event.key) {
+			case 'w':
+				keyUpLeft = true;
+				break;
+			case 's':
+				keyDownLeft = true;
+				break;
+			case 'o':
+				keyUpRight = true;
+				break;
+			case 'l':
+				keyDownRight = true;
+				break;
+			default: return;
+		}
+		sendInput();
+	} 
+	else {
+		if (event.key === 'o' || event.key === 'w') { 
+			keyUp = true;
+			sendInput(); 
+		}
+		if (event.key === 'l' || event.key === 's') {
+			keyDown = true;
+			sendInput(); 
+		}
+	}
+};
+
+let keyupHandler = function(event: KeyboardEvent) {
+	if (isPaused || endInfo) return;
+	if (isLocalMode) {
+		switch (event.key) {
+			case 'w':
+				keyUpLeft = false;
+				break;
+			case 's':
+				keyDownLeft = false;
+				break;
+			case 'o':
+				keyUpRight = false;
+				break;
+			case 'l':
+				keyDownRight = false;
+				break;
+			default: return;
+		}
+		sendInput();
+	} 
+	else {
+		if (event.key === 'o' || event.key === 'w') {
+			keyUp = false;
+			sendInput(); 
+		}
+		if (event.key === 'l' || event.key === 's') {
+			keyDown = false;
+			sendInput();
+		}
+	}
+};
+
+window.addEventListener('keydown', keydownHandler);
+window.addEventListener('keyup', keyupHandler);
+
 }
 
 let messageText: any = undefined; // Accessible dans wsGame.onmessage pour le texte de pause
@@ -479,16 +543,17 @@ function setupBabylonScene(BABYLON: any, canvas: HTMLCanvasElement) {
 			// Score
 			scoreText.text = gameState.score.left.toString() + "   " + gameState.score.right.toString();
 		});
-	}
-	if (babylonEngine){
-		babylonEngine.runRenderLoop(function () {
-			if (babylonScene)
-				babylonScene.render();
+
+		if (babylonEngine){
+			babylonEngine.runRenderLoop(function () {
+				if (babylonScene)
+					babylonScene.render();
+			});
+		}
+		window.addEventListener('resize', function () {
+			if (babylonEngine)
+				babylonEngine.resize();
 		});
 	}
-	window.addEventListener('resize', function () {
-		if (babylonEngine)
-			babylonEngine.resize();
-	});
 }
 

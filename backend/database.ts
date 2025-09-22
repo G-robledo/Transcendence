@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   database.ts                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: grobledo <grobledo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: grobledo <grobledo@student.42perpignan.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 14:09:05 by grobledo          #+#    #+#             */
-/*   Updated: 2025/07/10 15:32:52 by grobledo         ###   ########.fr       */
+/*   Updated: 2025/07/11 14:43:46 by grobledo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,6 +50,11 @@ export const dbPromise = open({
 	await db.run(`
 	INSERT OR IGNORE INTO players (id, username, password, avatar_url)
 	VALUES (1, 'utilisateur supprime', '', '/avatars/deleted.png')
+	`);
+
+	await db.run(`
+	INSERT OR IGNORE INTO players (id, username, password)
+	VALUES (2, 'utilisateur local,', '')
 	`);
 
 	console.log(" Base SQLite initialisee");

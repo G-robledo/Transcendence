@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   pong2d.ts                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: grobledo <grobledo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: grobledo <grobledo@student.42perpignan.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/11 16:58:15 by grobledo          #+#    #+#             */
-/*   Updated: 2025/07/10 14:48:58 by grobledo         ###   ########.fr       */
+/*   Updated: 2025/07/11 15:43:15 by grobledo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -228,27 +228,96 @@ export async function initGame() {
 		};
 
 		// gestion des input et envoi au serveur
+		const isLocalMode = (matchmaking === "local");
+
+		// Variables pour online (1 joueur sur ce clavier)
 		let keyUp = false, keyDown = false;
+
+		// Variables pour local (2 joueurs sur ce clavier)
+		let keyUpLeft = false, keyDownLeft = false;
+		let keyUpRight = false, keyDownRight = false;
+
 		function sendInput() {
 			if (wsGame && wsGame.readyState === WebSocket.OPEN && !isPaused && !endInfo) {
-				wsGame.send(JSON.stringify({ player: playerSide, input: { up: keyUp, down: keyDown } }));
+				if (isLocalMode) {
+					wsGame.send(JSON.stringify({
+						inputs: {
+							left:  { up: keyUpLeft,  down: keyDownLeft  },
+							right: { up: keyUpRight, down: keyDownRight }
+						}
+					}));
+				} else {
+					wsGame.send(JSON.stringify({
+						player: playerSide,
+						input: { up: keyUp, down: keyDown } // si pas localmode 1 seule key a envoyer
+					}));
+				}
 			}
 		}
+
 		window.addEventListener('keydown', (event) => {
-			if (isPaused || endInfo) 
-				return;
-			if (event.key === 'ArrowUp' || event.key === 'w') { 
-					keyUp = true; sendInput(); }
-			if (event.key === 'ArrowDown' || event.key === 's') { 
-				keyDown = true; sendInput(); }
+			if (isPaused || endInfo) return;
+
+			if (isLocalMode) {
+				switch (event.key) {
+					case 'w':
+						keyUpLeft = true; 
+						break;
+					case 's':
+						keyDownLeft = true;
+						break;
+					case 'o':
+						keyUpRight   = true;
+						break;
+					case 'l':
+						keyDownRight = true;
+						break;
+					default: return;
+				}
+				sendInput();
+			} else {
+				if (event.key === 'o' || event.key === 'w') { 
+					keyUp = true;
+					sendInput(); 
+				}
+				if (event.key === 'l' || event.key === 's') {
+					keyDown = true;
+					sendInput(); 
+				}
+			}
 		});
+
 		window.addEventListener('keyup', (event) => {
-			if (isPaused || endInfo) 
-				return;
-			if (event.key === 'ArrowUp' || event.key === 'w') { 
-				keyUp = false; sendInput(); }
-			if (event.key === 'ArrowDown' || event.key === 's') { 
-				keyDown = false; sendInput(); }
+			if (isPaused || endInfo) return;
+
+			if (isLocalMode) {
+				switch (event.key) {
+					case 'w':
+						keyUpLeft = false;
+						break;
+					case 's':
+						keyDownLeft = false;
+						break;
+					case 'o':
+						keyUpRight = false;
+						break;
+					case "l":
+						keyDownRight = false;
+						break;
+					default: return;
+				}
+				sendInput();
+			} 
+			else {
+				if (event.key === 'o' || event.key === 'w') {
+					keyUp = false;
+					sendInput(); 
+				}
+				if (event.key === "l" || event.key === 's') {
+					keyDown = false;
+					sendInput();
+				}
+			}
 		});
 
 		// fonction de dessin du jeu

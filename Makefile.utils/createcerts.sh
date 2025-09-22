@@ -2,7 +2,7 @@
 set -e
 
 CERT_PATH="$1"
-DOMAIN=ft.transcendance
+DOMAIN=transcendance.fr
 
 echoo(){
 	if [ -t 1 ]; then
@@ -34,7 +34,7 @@ TMP_EXT=$(mktemp)
 >>$TMP_EXT echo "subjectAltName = @alt_names"
 >>$TMP_EXT echo ""
 >>$TMP_EXT echo "[alt_names]"
->>$TMP_EXT echo "DNS.1 = $(DOMAIN)"
+>>$TMP_EXT echo "DNS.1 = $DOMAIN"
 openssl x509 -req -in $TMP_CA_CSR -CA ca.pem -CAkey $TMP_CA_KEY \
 -CAcreateserial -out server.crt -days 825 -sha256 -extfile $TMP_EXT
 

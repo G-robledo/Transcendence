@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   homeController.ts                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: grobledo <grobledo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: grobledo <grobledo@student.42perpignan.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 18:24:40 by grobledo          #+#    #+#             */
-/*   Updated: 2025/07/10 14:49:09 by grobledo         ###   ########.fr       */
+/*   Updated: 2025/07/11 13:55:06 by grobledo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,15 @@ export async function homeController() {
 
 	const btnMatchmaking = document.getElementById('btn-matchmaking');
 	const btnVsBot = document.getElementById('btn-vs-bot');
-	const btnTournament = document.getElementById('btn-tournament'); // <==
+	const btnTournament = document.getElementById('btn-tournament');
+	const btnLocal = document.getElementById('btn-local');
+
+
+	if (btnLocal) {
+		btnLocal.addEventListener('click', async () => {
+			window.location.hash = `game?mode=${mode}&matchmaking=local`;
+		});
+	}
 
 	if (btnMatchmaking) {
 		btnMatchmaking.addEventListener('click', async () => {
