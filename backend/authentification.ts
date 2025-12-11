@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   authentification.ts                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: grobledo <grobledo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: grobledo <grobledo@student.42perpignan.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 13:43:07 by grobledo          #+#    #+#             */
-/*   Updated: 2025/07/10 14:48:39 by grobledo         ###   ########.fr       */
+/*   Updated: 2025/12/11 19:58:46 by grobledo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,8 +24,8 @@ export async function verifyToken(req: FastifyRequest, reply: FastifyReply) {
 	}
 	try {
 		const decoded = jwt.verify(auth.slice(7), JWT_SECRET);
-		(req as any).user = decoded; // Ajoute à req.user
-		return decoded; // Tu peux retourner le payload
+		(req as any).user = decoded; // add to req.user
+		return decoded;
 	} catch {
 		reply.code(401).send({ error: 'Token invalide' });
 		return null;

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   gameUtils.ts                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: grobledo <grobledo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: grobledo <grobledo@student.42perpignan.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 20:04:00 by grobledo          #+#    #+#             */
-/*   Updated: 2025/07/10 14:48:40 by grobledo         ###   ########.fr       */
+/*   Updated: 2025/12/11 20:00:44 by grobledo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@ import type { GameRoom } from './wsHandler.js';
 import { PlayerId } from '../shared/type.js';
 import { dbPromise } from './database';
 
-// envoie les messages aux clients
+// send message to clients
 export function broadcast(room: GameRoom, data: any) {
 	const payload = JSON.stringify(data);
 	for (let i = 0; i < room.clients.length; i++) {
@@ -31,7 +31,7 @@ export function getUsernameFromSide(room: GameRoom, side: PlayerId): string {
 		if (client.id === side && client.username)
 			return client.username;
 	}
-	// Cas solo : si la partie est contre un bot et qu’on cherche le côte bot, on retourne "bot"
+	// if bot vs bot and we search bot side return bot
 	if (room.botSide && side === room.botSide)
 		return "bot";
 	return side;
@@ -41,7 +41,7 @@ export function getUsernameFromSide(room: GameRoom, side: PlayerId): string {
 export async function saveMatchResult(player1: string,player2: string,score1: number,score2: number,winnerUsername: string) {
 	const db = await dbPromise;
 
-	// Recupère les IDs joueurs ou bot
+	// get player or bot ID
 	let p1;
 	if (player1 === 'bot')
 		p1 = { id: 0 };
@@ -72,7 +72,7 @@ export async function saveMatchResult(player1: string,player2: string,score1: nu
 	let player1_id = p1.id;
 	let player2_id = p2.id;
 
-	// Insère dans match_history
+	// Insert in match_history
 	console.log('[DB] Enregistrement match :', {
 		player1_id, player2_id, score1, score2, winner_id
 	});
@@ -85,7 +85,7 @@ export async function saveMatchResult(player1: string,player2: string,score1: nu
 
 	console.log('[DB] Resultat INSERT :', res);
 
-	// Met à jour les stats du joueur 1 si ce n'est pas un bot
+	// update player1 stat if not a bot
 	if (player1_id !== 0) {
 		const p1Stats = await db.get('SELECT game_played, game_won FROM players WHERE id = ?', player1_id);
 
@@ -115,7 +115,7 @@ export async function saveMatchResult(player1: string,player2: string,score1: nu
 		);
 	}
 
-	// Met à jour les stats du joueur 2 si ce n'est pas un bot
+	// update player2 stat if not a bot
 	if (player2_id !== 0) {
 		const p2Stats = await db.get('SELECT game_played, game_won FROM players WHERE id = ?', player2_id);
 		let p2Win = 0;

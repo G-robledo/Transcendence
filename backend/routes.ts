@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   routes.ts                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: grobledo <grobledo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: grobledo <grobledo@student.42perpignan.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 14:09:21 by grobledo          #+#    #+#             */
-/*   Updated: 2025/07/10 14:48:51 by grobledo         ###   ########.fr       */
+/*   Updated: 2025/12/11 20:21:42 by grobledo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,14 +34,14 @@ declare module 'fastify' {
 	}
 }
 
-// typage pour body json pour 2fa
+// typing body json for 2fa
 type Verify2FABody = {code: string;secret: string;userId: number;};
 
 
 export default async function routes(fastify: FastifyInstance) {
 
 
-// ================ Creation user ======================
+// Creation user
 	fastify.post('/api/users', async (request, reply) => {
 		const { username, password } = request.body as {
 			username?: string;
@@ -69,7 +69,8 @@ export default async function routes(fastify: FastifyInstance) {
 
 	
 
-// ================ LOGIN =====================
+// LOGIN
+
 	fastify.post('/api/login', async (request, reply) => {
 		const { username, password } = request.body as {
 			username?: string;
@@ -81,7 +82,7 @@ export default async function routes(fastify: FastifyInstance) {
 			return reply.code(400).send({ error: 'Champs requis' });
 		}
 
-		// Verifie si ce user est dejà connecte 
+		// Check if user already connected 
 		if (connectedUsers.has(username)) {
 			return reply.code(409).send({ error: 'Ce compte est dejà connecte ailleurs.' });
 		}
@@ -94,25 +95,25 @@ export default async function routes(fastify: FastifyInstance) {
 		const isValid = await bcrypt.compare(password, user.password);
 		if (!isValid) return reply.code(401).send({ error: 'Mot de passe incorrect' });
 
-		// Verifie si la 2FA est activee
+		// check 2fa activation 
 		if (user.secret_key) {
 			// Mot de passe OK mais demande 2FA
 			return reply.send({ success: false, require2fa: true, userId: user.id});
 		}
 
-		// Sinon, login classique
+		// if 2fa not set classic login
 		const token = jwt.sign(
 			{ userId: user.id, username },
 			JWT_SECRET,
 			{ expiresIn: '1h' }
 		);
 
-		connectedUsers.add(username); // ajoute username a la liste
+		connectedUsers.add(username); // add username to connected list
 
 		return reply.send({ success: true, token });
 	});
 
-// ==================== Login avec 2fa ================
+//  Login with 2fa
 
 	fastify.post('/api/login2fa', async (request, reply) => {
 		const { userId, code } = request.body as { userId?: number, code?: string };
@@ -129,7 +130,7 @@ export default async function routes(fastify: FastifyInstance) {
 			return reply.code(401).send({ error: 'Utilisateur ou secret 2FA introuvable' });
 		}
 
-		// Verification du code TOTP
+		// check TOTP key
 		const verified = speakeasy.totp.verify({
 			secret: user.secret_key,
 			encoding: 'base32',
@@ -140,20 +141,20 @@ export default async function routes(fastify: FastifyInstance) {
 			return reply.code(401).send({ error: 'Code 2FA invalide' });
 		}
 
-		// Genère et envoie le token JWT
+		// create and send JWT
 		const token = jwt.sign(
 			{ userId, username: user.username },
 			JWT_SECRET,
 			{ expiresIn: '1h' }
 		);
 
-		// Marque ce user comme connecte
+		// add user to connected list
 		connectedUsers.add(user.username);
 
 		return reply.send({ success: true, token });
 	});
 
-// ========================= check JWT + 2fa =====================
+// check JWT + 2fa
 
 
 
@@ -163,9 +164,9 @@ export default async function routes(fastify: FastifyInstance) {
 		const auth = request.headers['authorization'];
 		if (!auth || !auth.startsWith('Bearer ')) {
 			return reply.code(401).send({ error: 'Aucun token' });
-		} // check le JWT pour voir si il est valide
-		const token = auth.substring('Bearer '.length); // on degage le bearer
-		const JWT_SECRET = process.env.JWT_SECRET!; // on recup la cle secrete du JWT
+		} // check JWT validation
+		const token = auth.substring('Bearer '.length); // remove bearer
+		const JWT_SECRET = process.env.JWT_SECRET!; // get JWT key
 
 		let payload: { userId: number; username: string };
 		try {
@@ -174,7 +175,7 @@ export default async function routes(fastify: FastifyInstance) {
 		catch {
 			return reply.code(401).send({ error: 'Token invalide' });
 		}
-		const userId = payload.userId; // si tout est bon on recup les infos
+		const userId = payload.userId; // if correct  get info
 
 		const db = await dbPromise;
 		const user = await db.get('SELECT username, avatar_url, secret_key FROM players WHERE id = ?', userId);
@@ -185,40 +186,40 @@ export default async function routes(fastify: FastifyInstance) {
 	});
 
 
-// =================================== logout =======================
+// logout
 
 	fastify.post('/api/logout', async (request, reply) => {
 		const payload = await verifyToken(request, reply);
 			if (!payload) return;
-		// Retire l'utilisateur du set connecte (on utilise le username stocke dans le token)
+		// remove username in JWT to connected list
 		if (payload && typeof payload === 'object' && 'username' in payload && typeof payload.username === 'string') {
 			connectedUsers.delete(payload.username);
 		}
 		reply.send({ success: true });
 	});
 
-// ============================ activation 2fa =====================
+//activation 2fa
 
 	fastify.post('/api/2fasetup', async (req, reply) => {
 		try {
-			// Genère le secret 2FA
+			// 2fa key generation
 			const secret = speakeasy.generateSecret({ name: 'ft_transcendence' });
 
-			// Verifie que l’otpauth_url existe
+			// check if otpauth_url exist
 			if (!secret.otpauth_url) {
 				console.error("[2FA Setup] otpauth_url manquante dans le secret genere:", secret);
 				reply.code(500).send({ success: false, error: "Impossible de generer l'URL OTPAuth" });
 				return;
 			}
 
-			// Genère le QR code à partir de l’otpauth_url
+			// Generate QR code frome otpauth_url
 			const qr = await qrcode.toDataURL(secret.otpauth_url);
 
-			console.log("[2FA Setup] Reponse envoyee au client :", { qr: qr.slice(0, 32) + "...", secret: secret.base32 }); // Le qr en entier serait trop long
+			console.log("[2FA Setup] Reponse envoyee au client :", { qr: qr.slice(0, 32) + "...", secret: secret.base32 }); // Cut ar to have a shorter key
 
 			reply.send({
 				success: true,
-				qr,		// à afficher avec <img src="qr" />
+				qr,		// display with <img src="qr" />
 				secret: secret.base32
 			});
 		} 
@@ -228,7 +229,8 @@ export default async function routes(fastify: FastifyInstance) {
 		}
 	});
 
-// ========================== verify 2fa ==========================
+
+//  verify 2fa 
 	fastify.post<{ Body: Verify2FABody }>('/api/verify2fa', async (req, res) => {
 
 		const { code, secret } = req.body;
@@ -244,14 +246,14 @@ export default async function routes(fastify: FastifyInstance) {
 		try {
 			const payload = jwt.verify(auth.slice(7), process.env.JWT_SECRET!) as { userId: number, username: string };
 			userId = payload.userId;
-			console.log("[2FA Verify] userId extrait du token :", userId); // on check l'id du token
+			console.log("[2FA Verify] userId extrait du token :", userId); // check token ID
 		} 
 		catch (event) {
 			console.error("[2FA Verify] Erreur lors du decodage du token :", event);
 			return res.code(401).send({ success: false, error: "Token invalide" });
 		}
 
-		const verified = speakeasy.totp.verify({ secret: secret, encoding: 'base32', token: code}); // verif du TOTP
+		const verified = speakeasy.totp.verify({ secret: secret, encoding: 'base32', token: code}); // verif TOTP
 
 		console.log("[2FA Verify] Resultat verification TOTP :", verified);
 
@@ -268,7 +270,7 @@ export default async function routes(fastify: FastifyInstance) {
 	});
 
 
-	// ==================check du ping ================
+	// check ping 
 	fastify.get('/api/ping', async (request, reply) => {
 		const auth = request.headers['authorization'];
 		if (!auth || !auth.startsWith('Bearer ')) {
@@ -285,7 +287,7 @@ export default async function routes(fastify: FastifyInstance) {
 			return reply.code(401).send({ error: 'Token invalide' });
 		}
 
-		// Ici, on note le timestamp du dernier ping pour ce user (dans un Map)
+		// we keep last timestamp of last ping for this user (in a Map)
 		userPings.set(payload.username, Date.now());
 
 		connectedUsers.add(payload.username);
@@ -294,7 +296,7 @@ export default async function routes(fastify: FastifyInstance) {
 	});
 
 
-// =================== Desactivation 2FA =========================
+//  Desactivation 2FA 
 	fastify.post('/api/disable-2fa', async (req, reply) => {
 		const auth = req.headers['authorization'];
 		if (!auth || !auth.startsWith('Bearer ')) {
@@ -311,14 +313,14 @@ export default async function routes(fastify: FastifyInstance) {
 		const userId = payload.userId;
 
 		const db = await dbPromise;
-		// Mets à NULL la cle secrète
+		// Set to NULL secret key
 		await db.run('UPDATE players SET secret_key = NULL WHERE id = ?', userId);
 
 		reply.send({ success: true });
 	});
 
 
-// ======================== modifier pseudo =======================
+//  modify username 
 	fastify.post('/api/change-username', async (request, reply) => {
 		const auth = request.headers.authorization || '';
 		const token = auth.replace('Bearer ', '');
@@ -345,11 +347,11 @@ export default async function routes(fastify: FastifyInstance) {
 		}
 		await db.run('UPDATE players SET username = ? WHERE id = ?', newUsername, userId);
 
-		// Mets à jour dans le set des users connectes
+		// update connected user list
 		connectedUsers.delete(oldUsername);
 		connectedUsers.add(newUsername);
 
-		// genère un nouveau token avec le nouveau username
+		// genèrate a new token with new username
 		const JWT_SECRET = process.env.JWT_SECRET!;
 		const newToken = jwt.sign(
 			{ userId: userId, username: newUsername },
@@ -361,7 +363,7 @@ export default async function routes(fastify: FastifyInstance) {
 	});
 
 
-// =============================== modifier mdp ===========================
+//  modify password 
 	fastify.post('/api/change-password', async (request, reply) => {
 		const auth = request.headers.authorization || '';
 		const token = auth.replace('Bearer ', '');
@@ -397,7 +399,7 @@ export default async function routes(fastify: FastifyInstance) {
 		reply.send({ success: true });
 	});
 
-// ========================= delete dans database =========================
+//  delete in database 
 	fastify.post('/api/delete-account', async (request, reply) => {
 		const auth = request.headers.authorization || '';
 		const token = auth.replace('Bearer ', '');
@@ -411,12 +413,12 @@ export default async function routes(fastify: FastifyInstance) {
 		const userId = payload.userId;
 		const db = await dbPromise;
 
-		// Met à jour l'historique pour remplacer le userId par 1 (utilisateur supprime)
+		// update history to replace userId by 1 (deleted user ID)
 		await db.run('UPDATE match_history SET player1_id = 1 WHERE player1_id = ?', userId);
 		await db.run('UPDATE match_history SET player2_id = 1 WHERE player2_id = ?', userId);
 		await db.run('UPDATE match_history SET winner_id = 1 WHERE winner_id = ?', userId);
 
-		// Supprime le joueur
+		// Delete player
 		await db.run('DELETE FROM players WHERE id = ?', userId);
 		connectedUsers.delete(payload.username);
 
@@ -424,7 +426,7 @@ export default async function routes(fastify: FastifyInstance) {
 	});
 
 
-// ====================== get info dashboard =====================
+//  get info dashboard 
 	fastify.get('/api/dashboard', async (request, reply) => {
 		const auth = request.headers['authorization'];
 		if (!auth || !auth.startsWith('Bearer ')) {
@@ -451,12 +453,12 @@ export default async function routes(fastify: FastifyInstance) {
 				tournaments_played,
 				tournaments_won
 			FROM players WHERE id = ?
-		`, userId); // get toutes les infos dans la db pour le dashboard
+		`, userId); // get all infos in db pour le dashboard
 
 		reply.send(stats || {});
 	});
 
-// ========================== get info historique ====================
+//  get info history
 	type MatchHistoryRow = {
 		id: number;
 		played_at: string;
@@ -520,7 +522,7 @@ export default async function routes(fastify: FastifyInstance) {
 			let opponent: string;
 			let result: "win" | "lose"
 
-			// Score et adversaire
+			// Score and opponent
 			if (row.player1 === username) {
 				score1 = row.score1;
 				score2 = row.score2;
@@ -532,7 +534,7 @@ export default async function routes(fastify: FastifyInstance) {
 				opponent = row.player1 || "bot";
 			}
 
-			// Resultat
+			// Results
 			if (row.winner_id === userId) {
 				result = "win";
 			} 
@@ -553,7 +555,7 @@ export default async function routes(fastify: FastifyInstance) {
 		reply.send(history);
 	});
 
-// ============ upload avatar ==========
+//  upload avatar 
 
 	fastify.post('/api/upload-avatar', async (request, reply) => {
 		const auth = request.headers['authorization'];
@@ -580,7 +582,7 @@ export default async function routes(fastify: FastifyInstance) {
 				filePart = part as MultipartFile;
 				break;
 			}
-		} // on recup le fichier envoye par le client
+		} // get file sent by client
 
 		if (!filePart) {
 			return reply.code(400).send({ error: 'Aucun fichier envoye.' });
@@ -591,7 +593,7 @@ export default async function routes(fastify: FastifyInstance) {
 			return reply.code(400).send({ error: 'Format de fichier non supporte' });
 		}
 
-		// 1. Cherche ancien avatar et supprime-le si besoin (sauf si c'est l'avatar par defaut)
+		// 1. check old avatar and delete it if exist (except for defaut)
 		const db = await dbPromise;
 		const user = await db.get('SELECT avatar_url FROM players WHERE id = ?', userId);
 		if (user && user.avatar_url) {
@@ -612,11 +614,11 @@ export default async function routes(fastify: FastifyInstance) {
 			}
 		}
 
-		// 2. Cree un nom unique en .webp
+		// 2. create unique name .webp
 		const fileName = `avatar_${userId}_${Date.now()}.webp`;
 		const uploadPath = path.join(__dirname, '../../public/avatars', fileName);
 
-		// 3. Utilise sharp pour redimensionner et convertir l'image en webp
+		// 3. use sharp to resize and convert image in webp format
 		await fs.mkdir(path.dirname(uploadPath), { recursive: true });
 
 		const chunks: Buffer[] = [];
@@ -626,13 +628,13 @@ export default async function routes(fastify: FastifyInstance) {
 		const fileBuffer = Buffer.concat(chunks);
 
 		const resizedBuffer = await sharp(fileBuffer)
-			.resize(256, 256, { fit: 'cover' })    // redimensionne à 256x256px
-			.webp({ quality: 80 })                 // convertit en .webp qualite 80% economise place
+			.resize(256, 256, { fit: 'cover' })    // resize to 256x256px
+			.webp({ quality: 80 })                 // convert in .webp quality 80% to save space
 			.toBuffer();
 
-		await fs.writeFile(uploadPath, resizedBuffer); // on met l'avatar dans le bon dossier
+		await fs.writeFile(uploadPath, resizedBuffer); // set avatar in good file
 
-		// 4. Mets à jour la db (champ avatar_url)
+		// 4. update db (champ avatar_url)
 		await db.run(
 			'UPDATE players SET avatar_url = ? WHERE id = ?',
 			`/avatars/${fileName}`,
@@ -642,7 +644,7 @@ export default async function routes(fastify: FastifyInstance) {
 		reply.send({ success: true, avatarUrl: `/avatars/${fileName}` });
 	});
 
-	// ==================== autre profile ============================
+	//  other profile 
 
 	fastify.get('/api/profile/:username', async (request, reply) => {
 		const { username } = request.params as { username: string };
@@ -661,14 +663,14 @@ export default async function routes(fastify: FastifyInstance) {
 	});
 }
 
-// ================== fonvction de clean d'user ==================
+//  clean user function 
 
-// Nettoyage regulier des users inactifs
+// regular clean of inactive users
 if (!userPingsCleanupStarted) {
-	userPingsCleanupStarted = true; // Anti-multi-setup sur reload/hot
+	userPingsCleanupStarted = true; // Anti-multi-setup on reload/hot
 
 	setInterval(() => {
-		const TIMER = 120000; // check toutes les 2 minutes
+		const TIMER = 120000; // check every 2 minutes
 		const now = Date.now();
 		for (const [username, lastPing] of userPings.entries()) {
 			if (now - lastPing > TIMER) {

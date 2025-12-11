@@ -6,7 +6,7 @@
 /*   By: grobledo <grobledo@student.42perpignan.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/11 13:07:25 by grobledo          #+#    #+#             */
-/*   Updated: 2025/07/09 21:59:17 by grobledo         ###   ########.fr       */
+/*   Updated: 2025/12/11 19:58:45 by grobledo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ export function startGameLoop()
 {
 	setInterval(() => {
 		for (const roomId in rooms) {
-			const room = rooms[roomId]; // give le bon romm id 
+			const room = rooms[roomId]; // give the good room id 
 
 			if (!room.gameStarted) {
 				continue;
@@ -65,7 +65,7 @@ export function startGameLoop()
 				room.gameStarted = false;
 				room.isPaused = false;
 
-				// update le bracket pour le tournois
+				// update bracket for tournament
 				if (roomId.startsWith("tourn-") && room.matchId && winnerUsername) {
 					console.log(`[BACK][GAMELOOP] Declare winner! Room: ${roomId}, MatchId: ${room.matchId}, Winner: ${winnerUsername}`);
 

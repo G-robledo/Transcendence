@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ia-pong.ts                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: grobledo <grobledo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: grobledo <grobledo@student.42perpignan.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/12 12:46:37 by grobledo          #+#    #+#             */
-/*   Updated: 2025/07/10 14:48:41 by grobledo         ###   ########.fr       */
+/*   Updated: 2025/12/11 20:06:25 by grobledo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,9 +18,9 @@ import type { Ball, GameConfig } from '../shared/type.js';
 const IA_REFRESH_INTERVAL = 1000; // frequence prediction ia
 const INPUT_INTERVAL = 1000 / 60;// frequence input
 
-const predictionMap = new Map<string, number>(); // target du bot stocke pour chaque room
-const goingToBotMap = new Map<string, boolean>(); // balle va vers joueur ou pas
-const prevVyMap = new Map<string, number>(); // vitesse precedente de la balle
+const predictionMap = new Map<string, number>(); // target du bot per room
+const goingToBotMap = new Map<string, boolean>(); // ball go to player or not
+const prevVyMap = new Map<string, number>(); // previous speed of ball
 const predictionIntervals = new Map<string, NodeJS.Timeout>();
 const inputIntervals = new Map<string, NodeJS.Timeout>();
 
@@ -32,25 +32,25 @@ function predictBallY(ball: Ball, config: GameConfig, side: PlayerId): number { 
 	if (side === 'right')
 		targetX = config.width - config.racquetWidth;
 	else
-		targetX = config.racquetWidth; // quel side est le bot
+		targetX = config.racquetWidth; // wich side is bot?
 
-	for (let steps = 0; steps < 1000; steps++) { // simulation traj ball sur 1000 step ou jusqu'au bord empeche loop infinie
+	for (let steps = 0; steps < 1000; steps++) { // simulation traj ball for 1000 step or to a side  prevent infinite loop
 		if ((side === 'right' && x >= targetX) || (side === 'left' && x <= targetX)) break;
 		x += vx;
 		y += vy;
 
 		if (y <= 0 || y >= config.height) {
 			vy *= -1;
-			y = Math.max(0, Math.min(config.height, y)); // si balle touche un mur on inverse y
+			y = Math.max(0, Math.min(config.height, y)); // if ball tocuh a wall y is inverted
 		}
 	}
 	return y;
 }
 
 export function startBot(roomId: string, room: GameRoom, side: PlayerId, config: GameConfig) {
-	stopBot(roomId); // clean au cas ou il y avait deja un bot
+	stopBot(roomId); // clean if alreaady a bot
 
-	predictionIntervals.set(roomId, setInterval(() => { // recalcul de la prediction a chaque refresh (1 par secondes)
+	predictionIntervals.set(roomId, setInterval(() => { // recalculation prediction each refresh (1 per seconds)
 		const ball = room.game.state.ball;
 
 		let goingToBot = false;
@@ -75,11 +75,11 @@ export function startBot(roomId: string, room: GameRoom, side: PlayerId, config:
 
 		prevVyMap.set(roomId, curVy);
 
-		// Si la balle ne va plus vers le bot alors qu’avant oui, on efface la prediction (surtout sur point marque)
+		// if ball stop to go in direction of the bot, erase prediction (especially on goal)
 		if (!goingToBot && prevGoing)
 			predictionMap.delete(roomId);
 
-		// recalcule la target prediction si la balle commence à venir ou si rebond sur mur
+		// recalculation of target prediction if ball beegan go to bot or touch a wall
 		if ((goingToBot && !prevGoing) || verticalChange) {
 			const y = predictBallY(ball, config, side);
 			predictionMap.set(roomId, y);
@@ -87,7 +87,7 @@ export function startBot(roomId: string, room: GameRoom, side: PlayerId, config:
 		goingToBotMap.set(roomId, goingToBot);
 	}, IA_REFRESH_INTERVAL));
 
-	// envoi inputs
+	// send inputs
 	inputIntervals.set(roomId, setInterval(() => {
 		
 		if (room.isPaused) {
@@ -104,7 +104,7 @@ export function startBot(roomId: string, room: GameRoom, side: PlayerId, config:
 			return;
 		}
 
-		// Hesitation : 10% de chance de ne rien faire ce tick
+		// Hesitation : 10%to do nothing on this tick
 		if (Math.random() < 0.1) {
 			room.inputs[side] = { up: false, down: false };
 			return;
@@ -113,13 +113,13 @@ export function startBot(roomId: string, room: GameRoom, side: PlayerId, config:
 		const delta = targetY - centerY;
 		const input: PlayerInput = { up: false, down: false };
 
-		// Reaction normale
+		// Normal reaction
 		if (delta < -4)
 			input.up = true;
 		else if (delta > 4)
 			input.down = true;
 
-		// Mouvement parasite : parfois le bot bouge sans raison (2% de chances)
+		//  parasite Mouvment : bot moove from his own (2% chances)
 		if (!input.up && !input.down && Math.random() < 0.02) {
 			if (Math.random() < 0.5) 
 				input.up = true;
@@ -132,7 +132,7 @@ export function startBot(roomId: string, room: GameRoom, side: PlayerId, config:
 
 }
 
-// clean tout et stoppe le bot
+// clean all and stop bot
 export function stopBot(roomId: string) {
 	clearInterval(predictionIntervals.get(roomId));
 	clearInterval(inputIntervals.get(roomId));

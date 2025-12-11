@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   server.ts                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: grobledo <grobledo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: grobledo <grobledo@student.42perpignan.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 14:09:31 by grobledo          #+#    #+#             */
-/*   Updated: 2025/07/10 14:48:51 by grobledo         ###   ########.fr       */
+/*   Updated: 2025/12/11 20:22:40 by grobledo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,10 +49,10 @@ async function startServer() {
 	fastify.register(fastifyStatic, {
 	root: path.join(__dirname, '../../public/avatars'),
 	prefix: '/avatars/',
-	decorateReply: false // empeche plugin d'ajouter quelque chose a la requete http
+	decorateReply: false // block plugin adding something to http request
 });
 
-	routes(fastify); // enregistre toutes les routes API
+	routes(fastify); // record API roads
 
 	fastify.listen({ port: 8443, host: '0.0.0.0' }, err => {
 	if (err) {
@@ -69,7 +69,7 @@ async function startServer() {
 		process.exit(0);
 	};
 
-	process.on('SIGINT', shutdown);   // Ctrl+C ou docker stop
+	process.on('SIGINT', shutdown);   // Ctrl+C or docker stop
 	process.on('SIGTERM', shutdown);  // docker stop standard
 }
 
