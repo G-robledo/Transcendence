@@ -85,7 +85,7 @@ export function loginController() {
 		});
 	}
 
-	// Gère la soumission du code 2FA si active
+	// manage 2fa if activated
 	if (twoFaBtn && twoFaInput) {
 		twoFaBtn.addEventListener('click', async () => {
 			const code = (twoFaInput as HTMLInputElement).value.trim();

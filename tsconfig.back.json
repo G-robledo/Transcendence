@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2022",                         // Genère du JS moderne
-    "module": "CommonJS",                    // Format classique pour Node.js
-    "outDir": "./dist",                      // Tous les fichiers JS compiles vont dans /dist
-    "rootDir": "./",                         // Pour conserver la structure backend/ et shared/
+    "target": "ES2022",                        
+    "module": "CommonJS",                  
+    "outDir": "./dist",                     
+    "rootDir": "./",                         
     "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,

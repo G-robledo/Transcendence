@@ -12,7 +12,7 @@
 
 import type { Match, Slot, BracketMsg} from "./tournamentController"
 
-// check la validite du token pour le front
+// check JWT
 export async function isTokenValid() {
 	const token = localStorage.getItem('jwt');
 	if (!token) {
@@ -24,7 +24,7 @@ export async function isTokenValid() {
 			headers: { 'Authorization': 'Bearer ' + token }
 		});
 		if (!res.ok) {
-			localStorage.removeItem('jwt'); // Nettoie le storage si token KO
+			localStorage.removeItem('jwt'); // clean storatge if token is KO
 			window.location.hash = 'login';
 			return false;
 		}
@@ -37,7 +37,7 @@ export async function isTokenValid() {
 	}
 }
 
-// permet d'attendre que babylonejs soit bien charge
+// wait for Babylon js loading
 export function loadBabylonScriptIfNeeded() {
 	return new Promise((resolve, reject) => {
 		if ((window as any).BABYLON) {
@@ -52,14 +52,13 @@ export function loadBabylonScriptIfNeeded() {
 	});
 }
 
-// fonction qui check si on est un joueur du match et qu'on peut rejoindre un match pas fini
 function canJoinMatch(match: any, username: string): boolean {
 	if (!match || !username) 
 		return false;
 	return ((match.p1.name === username || match.p2.name === username) &&!!match.playerModes[username] && match.status !== "done");
 }
 
-// affichage de l'overlay
+// display overlay
 export function showOverlay(overlay: HTMLElement | null, msg: string) {
 	if (!overlay) 
 		return;
@@ -71,7 +70,7 @@ export function showOverlay(overlay: HTMLElement | null, msg: string) {
 	}, 4800);
 }
 
-// fonction de broadcast au server
+// broadcast to server function
 export function send(ws: WebSocket | null, action: string, data?: Record<string, any>) {
 	if (!ws) {
 		console.warn("WebSocket non initialise.");
@@ -85,7 +84,7 @@ export function send(ws: WebSocket | null, action: string, data?: Record<string,
 	ws.send(JSON.stringify(message));
 }
 
-// gestion de la liste de joueurs attendant pour rejoindre
+// manage player waiting to join
 export function updateSlotsList(
 	slots: Slot[],
 	slotsElem: HTMLElement | null,
@@ -128,13 +127,13 @@ export function updateSlotsList(
 	}
 }
 
-// creation des boutons de mode sur la box de jeu
+// create mod buttons on box game
 export function createModeButtons(
 	parentBox: HTMLElement,
 	matchId: string,
 	sendFn: (action: string, data?: Record<string, any>) => void
 ) {
-	parentBox.innerHTML = ''; // Nettoyage du container !
+	parentBox.innerHTML = ''; // clean container
 	const btn2d = document.createElement("button");
 	btn2d.textContent = "Mode 2D";
 	btn2d.className = "btn-mode-choice mr-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg transition transform hover:scale-105 hover:brightness-110";
@@ -156,13 +155,13 @@ export function createModeButtons(
 	parentBox.appendChild(btn3d);
 }
 
-// creation du bouton join si mode valide
+// create join button if valid mode
 export function createJoinButton(
 	parentBox: HTMLElement,
 	matchId: string,
 	sendFn: (action: string, data?: Record<string, any>) => void
 ): HTMLButtonElement | null {
-	parentBox.innerHTML = ''; // Nettoyage du container !
+	parentBox.innerHTML = ''; // clean container
 	const btn = document.createElement("button") as HTMLButtonElement;
 	btn.className = "btn-join-game mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg transition transform hover:scale-105 hover:brightness-110";
 	parentBox.appendChild(btn);
@@ -175,7 +174,7 @@ export function createJoinButton(
 	return btn;
 }
 
-// update du visuel des brackets
+// update bracket visuals
 export function updateBracket(
 	matches: Match[],
 	final: Match | null,
@@ -193,7 +192,7 @@ export function updateBracket(
 ) {
 	btnLaunch.style.display = "none";
 
-	// MATCH 1
+	// game 1
 	if (matches[0]) {
 		if (bracketM1P1) 
 			bracketM1P1.innerHTML = matches[0].p1.name + (matches[0].p1.isBot ? ' <span class="italic text-xs text-gray-400">(Bot)</span>' : '');
@@ -214,7 +213,7 @@ export function updateBracket(
 		}
 	}
 
-	// -- MATCH 2 --
+	// game 2
 	if (matches[1]) {
 		if (bracketM2P1) 
 			bracketM2P1.innerHTML = matches[1].p1.name + (matches[1].p1.isBot ? ' <span class="italic text-xs text-gray-400">(Bot)</span>' : '');
@@ -235,7 +234,7 @@ export function updateBracket(
 		}
 	}
 
-	// -- FINALE --
+	// final game
 	if (finalElem && final) { finalElem.innerHTML = final.p1.name + (final.p1.isBot ? ' <span class="italic text-xs text-gray-400">(Bot)</span>' : '') +' <span class="text-gray-400">VS</span> ' +
 			final.p2.name + (final.p2.isBot ? ' <span class="italic text-xs text-gray-400">(Bot)</span>' : '');
 
@@ -246,7 +245,7 @@ export function updateBracket(
 
 			const myMode = final.playerModes[myName];
 
-			// On affiche juste le bouton rejoindre si le joueur a un mode
+			// display join button if player chosed a mode
 			if (canJoinMatch(final, myName)) {
 				createJoinButton(bracketFinalBtns, final.id, send);
 			}
@@ -262,13 +261,13 @@ export function updateBracket(
 	}
 }
 
-	// fonction pour check les pings de toute personne presente sur le site pour gerer les decos
+	// check every ping to manage deconnexion
 	let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
 
 	export function startHeartbeat() {
 		if (heartbeatInterval) 
-			clearInterval(heartbeatInterval); // evite plusieurs intervalles
+			clearInterval(heartbeatInterval);
 		const token = localStorage.getItem('jwt');
 		if (!token) return;
 		heartbeatInterval = setInterval(async () => {
@@ -282,7 +281,7 @@ export function updateBracket(
 			catch (event) {
 				console.error("[HEARTBEAT] Erreur ping", event);
 			}
-		}, 30000); // toutes les 30 secondes
+		}, 30000); // every 30 seconds
 	}
 
 	export function stopHeartbeat() {
@@ -292,7 +291,7 @@ export function updateBracket(
 	}
 }
 
-// Typage du payload du JWT
+// Edit payload type
 export type TokenPayload = {
 	userId: number;
 	username: string;
@@ -300,7 +299,7 @@ export type TokenPayload = {
 	exp?: number; // expiration
 };
 
-// recup les infos dans le token
+// get info in token
 export function getTokenPayload(): TokenPayload | null
 {
 	const token: string | null = localStorage.getItem('jwt');

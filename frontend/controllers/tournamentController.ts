@@ -12,8 +12,8 @@
 
 import {isTokenValid, showOverlay, send, updateSlotsList, updateBracket } from "./controllersUtils.js";
 
-// initialisation des boutonns du bracket et de l'overlay
-// le controller guard va etre la pour faire en sorte qu'on ait pas plusieurs instance du tournament controller en meme temps( refresh souvent pour afficher les bracket donc un seul controller a la fois)
+// initialisation bracket buttons and overlays
+// controller guard to have only one tournament controller at a time( refresh often to display brackets so no need to have severals controllers)
 declare global {
 	interface Window {
 		__tournamentControllerGuard?: {
@@ -128,7 +128,7 @@ export async function tournamentController() {
 	if (btnQuit) 
 		btnQuit.onclick = null;
 
-	// Overlay unique pour toute la page
+	// unique overlay for all the page
 	let overlay = document.getElementById('tournament-overlay');
 	if (!overlay) {
 		overlay = document.createElement('div');
@@ -143,21 +143,21 @@ export async function tournamentController() {
 
 
 	function openWS() {
-		if (ws) { // si une socket est deja ouverte on la ferme proprement pour ne pas avoir de doublon
+		if (ws) { // if socket already open close it properly
 			ws.onclose = null;
 			ws.close();
 			ws = null;
 		}
 		const token = localStorage.getItem('jwt') || '';
-		const wsUrl = 'wss://' + window.location.hostname + ':8443/ws/tournament?token=' + encodeURIComponent(token); // on place le token dans l'url comme ca authentification instantanee
-		ws = new WebSocket(wsUrl); // on ouvre la websocket avec l'url
+		const wsUrl = 'wss://' + window.location.hostname + ':8443/ws/tournament?token=' + encodeURIComponent(token); // token in url -> instant authentification
+		ws = new WebSocket(wsUrl); // open websocket with l'url
 		controllerGuard.ws = ws;
 
-		ws.onopen = () => { // quand socket s'ouvre petit message de connexion
+		ws.onopen = () => { // connexion message when socket open
 			if (statusElem) 
 				statusElem.textContent = "Connecte au tournoi.";
 		};
-		ws.onclose = () => {// quand socket ferme on clean tout
+		ws.onclose = () => {// when socket close clean everything
 			if (statusElem) 
 				statusElem.textContent = "Deconnecte du tournoi.";
 			if (slotsElem) 
@@ -173,21 +173,21 @@ export async function tournamentController() {
 			myName = '';
 			controllerGuard.active = false;
 			controllerGuard.ws = null;
-			// on redirect sur la page home en cas de socket deconnecte
+			// redirect to home page if disconnected
 			window.location.hash = 'home';
 		};
-		// recup des messages envoyes par le serveur
+		// get message send by server
 		ws.onmessage = function (event: MessageEvent) {
 			let msg: any;
 			try { msg = JSON.parse(event.data); }
 			catch { return; }
 
-			// update de la liste de joueur
+			// update player list
 			if (msg.type === "slots")
 				updateSlotsList(
 					msg.slots, slotsElem, btnLaunch, btnAddBot, btnRemoveBot, btnJoin, btnQuit, myName, lastBracket
 				);
-			// gestion du bracket pour tout afficher
+			// manage bracket display
 			if (msg.type === "bracket") {
 				if (typeof msg.you === 'string') {
 					myName = msg.you;
@@ -209,11 +209,11 @@ export async function tournamentController() {
 					);
 			}
 
-			// message de redirect avec la room id
+			// redirect message with room id
 			if (msg.type === "goto_game" && msg.roomId && msg.mode) {
 				window.location.hash = `game?mode=${msg.mode}&room=${msg.roomId}&tournament=1`;
 			}
-			// message de fin de tournois
+			// game over message
 			if (msg.type === "tournament_over" && msg.winner) {
 				showOverlay(overlay, msg.winner + " remporte le tournoi !");
 				setTimeout(() => {
@@ -236,11 +236,11 @@ export async function tournamentController() {
 
 	openWS();
 	
-	// fonction de clean pour permettre un nouveau tournois
+	// clean function for new tournament creation
 	return function cleanupTournament() {
 		if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
 			console.log("[FRONT][SOCKET] wsTournament CLOSE demandee");
-			ws.onclose = null; // Empêche le handler de se declencher pendant le cleanup
+			ws.onclose = null; // block handler during cleanup
 			ws.close(1000, "Cleanup: User quit tournament page");
 		}
 		ws = null;

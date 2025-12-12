@@ -42,7 +42,7 @@ export let finalMatch: Match | null = null;
 let tournamentStarted: boolean = false;
 export let tournamentSockets: WebSocket[] = [];
 
-export async function handleFinalsUpdate(match: Match) { // gere les brackets pour recuperer les user qui vont en finale et cree le bracket final
+export async function handleFinalsUpdate(match: Match) { // get finalist and create fianl bracket
 	console.log('[TOURNOI] Appel handleFinalsUpdate pour match.id =', match.id, 'bracket = ', bracket, 'finalmatch =', finalMatch, 'maatchid = ', match.id);
 
 	if (bracket && finalMatch && (match.id === "m1" || match.id === "m2")) {
@@ -59,7 +59,7 @@ export async function handleFinalsUpdate(match: Match) { // gere les brackets po
 					reassignPlayerWsEverywhere(match.winner, match.p1.ws);
 				}
 				else {
-					finalMatch.p1 = { name: "…", ws: null, isBot: false }; // si on arrive pas a avoir le pseudo empeche le tournois de crash
+					finalMatch.p1 = { name: "…", ws: null, isBot: false }; // prevent crash
 				}
 			}
 		}
@@ -83,11 +83,11 @@ export async function handleFinalsUpdate(match: Match) { // gere les brackets po
 
 		broadcastBracket(slots, bracket, finalMatch, tournamentSockets);
 
-		let bothDone: boolean = true; // si les deux matchs sont fini on a les noms des deux gagnants on peut passer a la finale
+		let bothDone: boolean = true; // when all games ended and we have winner name start finale
 		for (let i = 0; i < bracket.length; i++) {
 			if (bracket[i].status !== "done") {
 				bothDone = false;
-			} // check si les deux matchs sont finit
+			} // check if every game ended
 		}
 
 		if (bothDone) {
@@ -116,7 +116,7 @@ export async function handleFinalsUpdate(match: Match) { // gere les brackets po
 			finalMatch = null;
 			tournamentStarted = false;
 		}, 5000);
-	} // si le match est fini on affiche le pseudo pendant 5 seconde et on quitte
+	} // display winner name during 5 second and leave game
 }
 
 export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/tournament', { websocket: true }, async (ws: WebSocket, req) => {
@@ -125,9 +125,9 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 		if (!name) {
 			const randNum: number = Math.floor(1 + Math.random() * 9000);
 			name = "Player" + randNum;
-		} // pas sense arriver mais permet de corriger les erreurs de typage puisque name jamais null
+		} // type correction
 
-		let slot = slots.find(s => s.name === name && !s.isBot); // on verifie si il y a des joueurs dans les slots, si oui on  associe la socket
+		let slot = slots.find(s => s.name === name && !s.isBot); // if playen in every slot link socket
 		if (slot) {
 			slot.ws = ws;
 			reassignPlayerWsEverywhere(name, ws);
@@ -138,7 +138,7 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 				if (match.p1.name === name && !match.p1.isBot) {
 					match.p1.ws = ws;
 				}
-				if (match.p2.name === name && !match.p2.isBot) { // si le joueur est dans le match et pas un bot on update la reference de socket pour rester synchro
+				if (match.p2.name === name && !match.p2.isBot) { // If the player is in the match and not a bot, we update the socket reference to stay in sync.
 					match.p2.ws = ws;
 				}
 			}
@@ -147,12 +147,12 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 			if (finalMatch.p1.name === name && !finalMatch.p1.isBot) {
 				finalMatch.p1.ws = ws;
 			}
-			if (finalMatch.p2.name === name && !finalMatch.p2.isBot) { // pareil pour finale
+			if (finalMatch.p2.name === name && !finalMatch.p2.isBot) { // same for finals
 				finalMatch.p2.ws = ws;
 			}
 		}
 
-		broadcastSlots(slots, tournamentSockets); // on broadcast tous aux joueurs
+		broadcastSlots(slots, tournamentSockets); // broadcast to all players
 		if (bracket) {
 			broadcastBracket(slots, bracket, finalMatch, tournamentSockets);
 		}
@@ -184,7 +184,7 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 						broadcastSlots(slots, tournamentSockets);
 					}
 				}
-			} // si quelqu'un essaie de rejoindre le match, si il est pas deja dans la liste de joueur et que le tournois est pas encore lance on l'ajoute
+			} // if tournament started we keep player name in player list
 
 			if (msg.action === "quit") {
 				if (tournamentStarted) {
@@ -197,7 +197,7 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 						broadcastSlots(slots, tournamentSockets);
 					}
 				}
-			} // si tournois pas lance on enleve le nom du joueur de la liste des joueurs sinon il se passe rien
+			} // if tournament not started rmove player name in list
 
 			console.log(`[WS-REASSOC] ${name} ws reassocie partout.`);
 			if (msg.action === "add_bot") {
@@ -213,7 +213,7 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 						broadcastSlots(slots, tournamentSockets);
 					}
 				}
-			} // ajout de bot si - de 4 joueurs
+			} // add bot if less than 4 player
 
 			if (msg.action === "remove_bot") {
 				if (!tournamentStarted) {
@@ -230,7 +230,7 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 						broadcastSlots(slots, tournamentSockets);
 					}
 				}
-			} // pareil pour enlever les bots
+			} // same but for removing bot
 
 			if (msg.action === "launch") {
 				const launcherSlot = slots.find(s => s.name === name && !s.isBot);
@@ -285,7 +285,7 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 									roomId: null,
 									playerModes: {}
 								};
-								broadcastBracket(slots, bracket, finalMatch, tournamentSockets); // creation des brackets avec le melange de joueur. si bot on lui donne un mode 2d par default (ca change rien pas de render pour bot)
+								broadcastBracket(slots, bracket, finalMatch, tournamentSockets); // bracket creation. if bot set mod to 2d (just to setup a mode)
 
 								const db = await dbPromise;
 								const humanUsernames = slots.filter(s => !s.isBot).map(s => s.name);
@@ -296,7 +296,7 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 											username
 										);
 									}
-								} // on fais +1 a tous les vrais joueur en tournois joue pour tous ceux qui ont lance le tournois
+								} // +1 for each non bot player
 
 								for (const match of bracket) {
 									if (match.p1.isBot && match.p2.isBot) {
@@ -329,7 +329,7 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 						}
 					}
 				}
-			} // tant qu'on a pas choisi de mode on est en waiting des qu'on en choisit un on recupere la value
+			} // waiting as long as player doesn't choose mode
 
 			if (msg.action === "start_match" && msg.matchId) {
 				let match: Match | null = null;
@@ -355,7 +355,7 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 								mode: match.playerModes[name]
 							}));
 						}
-					} // econnection si la partie est deja lancee
+					} // reconnect if game already started
 					else {
 						if (match.status === "waiting") {
 							const participants = [match.p1, match.p2];
@@ -366,12 +366,12 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 									const mode = match.playerModes[p.name];
 									if (!mode || (mode !== "2d" && mode !== "3d")) {
 										missingMode = true;
-									} // securite pour bien avoir un render 
+									} // render security
 								}
 							}
 							if (!missingMode) {
 								match.status = "playing";
-								match.roomId = "tourn-" + Math.random().toString(36).slice(2, 10); // creation du roomid
+								match.roomId = "tourn-" + Math.random().toString(36).slice(2, 10); // roomid creation
 
 								const clients: { id: PlayerId; username: string; socket: WebSocket | null }[] = [];
 								let botSide: PlayerId | undefined = undefined;
@@ -387,7 +387,7 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 								}
 								else {
 									clients.push({ id: 'right', username: match.p2.name, socket: null });
-								} // on definit les sides des joueurs que ca soit bot ou humains
+								} // define player side
 
 								rooms[match.roomId] = {
 									game: new Game(config),
@@ -401,15 +401,15 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 									lastScorer: null,
 									matchId: match.id,
 									...(botSide ? { botSide } : {})
-								}; // on cree une nouvelle config ... pour eviter d'avoir a retaper tout pour bot
+								}; // create new config ... avoid to write all for bot
 								if (botSide) {
 									startBot(match.roomId, rooms[match.roomId], botSide, config);
-								} // si y a un bot on le start
+								} // if bot start it
 
 								broadcastBracket(slots, bracket, finalMatch, tournamentSockets);
 
 								if (match.p1.isBot && match.p2.isBot) {
-									autoResolveBotMatch(match, () => broadcastBracket(slots, bracket, finalMatch, tournamentSockets), handleFinalsUpdate); // si bot cvontre bot en finale on resous automatiquement
+									autoResolveBotMatch(match, () => broadcastBracket(slots, bracket, finalMatch, tournamentSockets), handleFinalsUpdate); // if bot vs bot resolve game
 								}
 								else {
 									for (const player of [match.p1, match.p2]) {
@@ -432,18 +432,18 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 				}
 			}
 
-			if (msg.action === "declare_winner" && msg.matchId && msg.winner) { // on a un winner dans un match
+			if (msg.action === "declare_winner" && msg.matchId && msg.winner) { // we have a winner in a game
 				let match: Match | null = null;
 				if (bracket) {
 					for (let i = 0; i < bracket.length; i++) {
 						if (bracket[i].id === msg.matchId) {
 							match = bracket[i];
-						} // on cherche grace a l'id quel match a son gagnanr
+						} // match Id with winner
 					}
 				}
 				if (!match && finalMatch && finalMatch.id === msg.matchId) {
 					match = finalMatch;
-				} // si il est pas dans les bracket de demi on check pour la finale et si c'est bien ce match qui a son gagnant on assigne son id a match
+				} // if not in semi finals check if id in final game
 				if (match) {
 					let winnerName: string = msg.winner;
 					if (winnerName === "bot") {
@@ -458,8 +458,8 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 					}
 
 					msg.winner = winnerName;
-					match.status = "done"; // match termine
-					match.winner = winnerName; //on stocke le nom de celui qui a gagne le match
+					match.status = "done"; // game over
+					match.winner = winnerName; //get winner username
 
 					broadcastBracket(slots, bracket, finalMatch, tournamentSockets);
 					handleFinalsUpdate(match);
@@ -473,20 +473,20 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 		broadcastBracket(slots, bracket, finalMatch, [ws]);
 
 		ws.on('close', () => {
-			tournamentSockets = tournamentSockets.filter(s => s !== ws); // quand une socket se ferme on l'enleve de la liste des socket pour plus envoyer de message
-			const slot = slots.find(s => s.name === name);// on regarde si c'est une socket dans le tournois
+			tournamentSockets = tournamentSockets.filter(s => s !== ws); // when socket clove remove it from socket list
+			const slot = slots.find(s => s.name === name);// check if it's a tournament player
 			if (slot) {
 				slot.ws = null;
-			} // si on trouve on met socket a null : confirme que joueur deco
+			} // if yes confirm deconnexion	
 			if (!tournamentStarted) {
 				slots = slots.filter(s => !s.isBot || (s.isBot && s.ws !== null));
-			} // on supprime tous les bots qui vont pas faire le tournois 
+			} // delete every bot not in tournament
 			broadcastSlots(slots, tournamentSockets);
 		});
 	});
 }
 
-function reassignPlayerWsEverywhere(name: string, ws: WebSocket | null) { // fonction pour resynchroniser toutes les sockets histoire que tous le monde voit la meme chose
+function reassignPlayerWsEverywhere(name: string, ws: WebSocket | null) { // synchro all socket, everyone see the same thing
 	if (bracket) {
 		for (const match of bracket) {
 			if (match.p1.name === name && !match.p1.isBot) {

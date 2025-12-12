@@ -12,7 +12,7 @@
 
 import { isTokenValid } from "./controllersUtils.js";
 
-// Typage pour la reponse API des stats
+// Type for Api
 type DashboardStats = {
 	win: number;
 	winrate: number;
@@ -21,11 +21,11 @@ type DashboardStats = {
 	tournaments_won: number;
 };
 
-// Typage pour chaque entree de l'historique
+// type for history
 type MatchHistoryEntry = {
 	id: number;
 	played_at: string; // date
-	opponent: string; // pseudo de l’adversaire ou "bot"
+	opponent: string; // username opponent
 	score1: number;
 	score2: number;
 	result: "win" | "lose" | "draw";
@@ -42,7 +42,7 @@ export async function dashboardController(): Promise<void> {
 	if (!token) 
 		return;
 
-	// recup stat
+	// get stat
 	let stats: DashboardStats | null = null;
 	try {
 		const res = await fetch('/api/dashboard', {
@@ -90,7 +90,7 @@ export async function dashboardController(): Promise<void> {
 		console.error("Erreur API history:", event);
 		history = [];
 	}
-	// creation de l'historique
+	// history creation
 	const tbody = document.getElementById('history-table');
 	if (tbody) {
 		tbody.innerHTML = '';
@@ -113,7 +113,7 @@ export async function dashboardController(): Promise<void> {
 				tdDate.className = "text-gray-600";
 				tr.appendChild(tdDate);
 
-				// Opponent (nom cliquable si pas "bot")
+				// Opponent clickable
 				const tdOpp = document.createElement('td');
 				if (entry.opponent && entry.opponent !== "bot") {
 					const btn = document.createElement('button');
@@ -135,7 +135,7 @@ export async function dashboardController(): Promise<void> {
 				tdScore.textContent = `${entry.score1} - ${entry.score2}`;
 				tr.appendChild(tdScore);
 
-				// Resultat
+				// Results
 				const tdResult = document.createElement('td');
 				if (entry.result === "win") {
 					tdResult.textContent = "Victoire";

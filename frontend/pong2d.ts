@@ -21,9 +21,9 @@ let playerSide: "left" | "right" | null = null;
 let gameState: GameState | null = null;
 let pauseTimerInterval: any = null;
 
-// Nettoie les WS et l’etat (à appeler avant de quitter la page de jeu)
+// clean websocket and game state
 export function cleanupGame() {
-	// Fermer le wsGame si ouvert
+	// close game websocket if needed
 	if (typeof wsGame !== "undefined" && wsGame) {
 		if (wsGame.readyState === WebSocket.OPEN || wsGame.readyState === WebSocket.CONNECTING) {
 			console.log("[FRONT][SOCKET] wsGame CLOSE demandee");
@@ -31,7 +31,7 @@ export function cleanupGame() {
 		}
 		wsGame = null;
 	}
-	// Fermer le wsMatchmaking si ouvert
+	// close matchmaking websocket if needed
 	if (typeof wsMatchmaking !== "undefined" && wsMatchmaking) {
 		if (wsMatchmaking.readyState === WebSocket.OPEN || wsMatchmaking.readyState === WebSocket.CONNECTING) {
 			console.log("[FRONT][SOCKET] wsMatchmaking CLOSE demandee");
@@ -39,13 +39,13 @@ export function cleanupGame() {
 		}
 		wsMatchmaking = null;
 	}
-	// Reinitialiser les etats du jeu
+	// reset game state
 	isPaused = false;
 	endInfo = null;
 	pauseInfo = null;
 	playerSide = null;
 	gameState = null;
-	// Nettoyer le timer pause si existant
+	// clean pause timer if exist
 	if (typeof pauseTimerInterval !== "undefined" && pauseTimerInterval) {
 		clearInterval(pauseTimerInterval);
 		pauseTimerInterval = null;
@@ -68,7 +68,7 @@ export async function initGame() {
 	canvasElement.width = width;
 	canvasElement.height = height;
 
-	// lecture de l'url
+	// url read
 	const hash = window.location.hash;
 	const paramsMatch = hash.match(/\?(.*)$/);
 	const params = paramsMatch ? new URLSearchParams(paramsMatch[1]) : new URLSearchParams();
@@ -77,10 +77,10 @@ export async function initGame() {
 	const isTournament = params.has('tournament');
 	const token = localStorage.getItem('jwt') || '';
 
-	// Appelle cleanupGame si on quitte la page
+	// call cleanupgame if page closed
 	window.addEventListener('beforeunload', cleanupGame);
 
-	// gestion de connexion a room tournois
+	// manage connexion to tournament room
 	if (isTournament && params.has('room')) {
 		const roomId = params.get('room');
 		if (!roomId) 
@@ -92,9 +92,9 @@ export async function initGame() {
 	// Matchmaking WS
 	let wsURL = `wss://${window.location.hostname}:8443/ws/matchmaking?mode=${matchmaking}&token=${encodeURIComponent(token)}`;
 	console.log("[FRONT][SOCKET] Ouverture WS Matchmaking", wsURL);
-	wsMatchmaking = new WebSocket(wsURL); // on attribue la socket avec l'url
+	wsMatchmaking = new WebSocket(wsURL); // link socket with url
 
-	// gestion logs pour ouverture fermeture ou error pour la socket
+	// mange socket logs for open/close/error
 	wsMatchmaking.onopen = function () {
 		console.log("[FRONT][SOCKET] wsMatchmaking OPEN");
 	};
@@ -105,19 +105,19 @@ export async function initGame() {
 		console.error("[FRONT][SOCKET] wsMatchmaking ERROR:", err);
 	};
 
-	// gestion des messages recus du serveur
+	// manage message recieved by server
 	wsMatchmaking.onmessage = function (event) {
 		const msg = JSON.parse(event.data);
 
 		console.log("[FRONT][GAME][RECV]", msg, "tournament?", isTournament, "params", window.location.hash);
 
-		// if waiting on est dans le matchmaking
+		// if waiting we are in matchmaking
 		if (msg.type === "waiting") {
 			const playerInfo = document.getElementById('playerInfo');
 			if (playerInfo) 
 				playerInfo.textContent = "Recherche d'un adversaire...";
 		}
-		// on sort du matchmaking quand quelqu'un trouve
+		// leave matchmaking if player found
 		if (msg.type === "match_found") {
 			playerSide = msg.side;
 			if (wsMatchmaking) { 
@@ -132,9 +132,9 @@ export async function initGame() {
 	function startGameWS(roomId: string, side: "left" | "right" | null, opponent: string | null) {
 		const gameWSURL = `wss://${window.location.hostname}:8443/ws/${roomId}?token=${encodeURIComponent(token)}`;
 		console.log("[FRONT][SOCKET] Ouverture WS Game", gameWSURL);
-		wsGame = new WebSocket(gameWSURL); // on associe la socket avec l'url de la room id
+		wsGame = new WebSocket(gameWSURL); // link socket with room id url
 
-		// pour ouverture de socket on affiche le message contre qui on joue 
+		// when socket open display opponent
 		wsGame.onopen = function () {
 			console.log("[FRONT][SOCKET] wsGame OPEN");
 			const playerInfo = document.getElementById('playerInfo');
@@ -145,14 +145,14 @@ export async function initGame() {
 				wsGame.send(JSON.stringify({ type: "ready" }));
 			}
 		};
-		// quand on deco on arrete le timeout pour ne plus avoir d'update de message alors que pas de connexion
+		// when deconnexion stop timout (stop to recieve room log when disconnected)
 		wsGame.onclose = function (event) {
 			console.log("[FRONT][SOCKET] wsGame CLOSED", event.code, event.reason);
 			if (pauseTimerInterval) {
 				clearInterval(pauseTimerInterval);
 				const pauseMsg = document.getElementById('pauseMsg');
 				if (pauseMsg) 
-					pauseMsg.textContent = ""; // on efface bien le texte de pause pour pas avoir de message fantomes 
+					pauseMsg.textContent = ""; // clean pause message
 			}
 		};
 		wsGame.onerror = function (err) {
@@ -172,11 +172,11 @@ export async function initGame() {
 				isPaused = true;
 				pauseInfo = { until: msg.until };
 
-				// ENVOIE "ready" si tu es connecte au moment de la pause
+				// send ready if connected during pause
 				if (wsGame && wsGame.readyState === WebSocket.OPEN) {
 					wsGame.send(JSON.stringify({ type: "ready" }));
 				}
-				// met a jour le timer de l'overlay
+				// update overlay timer
 				if (pauseTimerInterval) 
 					clearInterval(pauseTimerInterval);
 				pauseTimerInterval = setInterval(() => {
@@ -193,7 +193,7 @@ export async function initGame() {
 					}
 				}, 250);
 			}
-			// reprend le match enleve l'overlay et arrete le decompte de deconnexion
+			// delete pause state and timeout
 			if (msg.type === "resume") {
 				console.log("[FRONT][GAME] RECV RESUME", msg);
 				isPaused = false;
@@ -206,7 +206,7 @@ export async function initGame() {
 						pauseMsg.textContent = "";
 				}
 			}
-			// fin du match on renvoie vers la bonne url home si matchmaking tournois si tournosi
+			// redirect to good url when game over
 			if (msg.type === "end") {
 				console.log("[FRONT][GAME] RECV END", msg);
 				isPaused = true;
@@ -227,13 +227,13 @@ export async function initGame() {
 			}
 		};
 
-		// gestion des input et envoi au serveur
+		// input management
 		const isLocalMode = (matchmaking === "local");
 
-		// Variables pour online (1 joueur sur ce clavier)
+		// online variables (1 player on keyboard)
 		let keyUp = false, keyDown = false;
 
-		// Variables pour local (2 joueurs sur ce clavier)
+		// local variables ( 2 players on keyboard)
 		let keyUpLeft = false, keyDownLeft = false;
 		let keyUpRight = false, keyDownRight = false;
 
@@ -249,7 +249,7 @@ export async function initGame() {
 				} else {
 					wsGame.send(JSON.stringify({
 						player: playerSide,
-						input: { up: keyUp, down: keyDown } // si pas localmode 1 seule key a envoyer
+						input: { up: keyUp, down: keyDown } // if online mod only one key is sent
 					}));
 				}
 			}
@@ -320,13 +320,13 @@ export async function initGame() {
 			}
 		});
 
-		// fonction de dessin du jeu
+		// drawing function
 		function draw() {
 			if (!ctx) 
 				throw new Error("Impossible d'obtenir le contexte 2D.");
 			ctx.clearRect(0, 0, width, height);
 
-			// Fond degrade sombre 
+			// dark background
 			let gradient = ctx.createLinearGradient(0, 0, width, height);
 			gradient.addColorStop(0, "#050B1E");
 			gradient.addColorStop(1, "#111C44");
@@ -336,7 +336,7 @@ export async function initGame() {
 			if (gameState) {
 				const { ball, racquets, score } = gameState;
 
-				// Filet central
+				// central net
 				ctx.save();
 				ctx.strokeStyle = "#60a5fa";
 				ctx.shadowColor = "#3b82f6";
@@ -350,7 +350,7 @@ export async function initGame() {
 				ctx.setLineDash([]);
 				ctx.restore();
 
-				// Raquettes 
+				// racquets
 				(["left", "right"] as const).forEach(side => {
 					const r = racquets[side];
 					ctx.save();
@@ -366,7 +366,7 @@ export async function initGame() {
 					ctx.restore();
 				});
 
-				// Balle
+				// Ball
 				ctx.save();
 				ctx.beginPath();
 				ctx.arc(ball.position.posx, ball.position.posy, ball.radius, 0, 2 * Math.PI);
@@ -388,7 +388,7 @@ export async function initGame() {
 				ctx.restore();
 			} 
 			else {
-				// Attente joueurs
+				// waiting screen
 				ctx.save();
 				ctx.font = "bold 28px monospace";
 				ctx.textAlign = "center";
@@ -414,7 +414,7 @@ export async function initGame() {
 				ctx.restore();
 			}
 
-			// Overlay GAGNANT
+			// Overlay winner
 			if (endInfo) {
 				ctx.save();
 				ctx.font = "bold 56px monospace";

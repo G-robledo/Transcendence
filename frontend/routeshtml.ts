@@ -20,7 +20,7 @@ import { twoFaSetupController } from "./controllers/2faController.js";
 import { tournamentController } from "./controllers/tournamentController.js";
 import { rgpdController } from "./controllers/rgpdController.js";
 
-// ggestion de toute les routes avec html associe et controller de chaque page
+//manage road with html and controller of each pages
 export const routes = {
 	'login': { html: '/pages/login.html', controller: loginController },
 	'register': { html: '/pages/register.html', controller: registerController },

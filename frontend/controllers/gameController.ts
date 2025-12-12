@@ -25,13 +25,13 @@ export async function gameController() {
 		return;
 	}
 
-	// Nettoyage d'une ancienne instance de jeu (si on repasse plusieurs fois sur game)
+	// Clean old game instance
 	if (gameModule && typeof gameModule.cleanupGame === "function") {
 		gameModule.cleanupGame();
 		gameModule = null;
 	}
 
-	//  Recupère mode depuis l'URL hash (ex : #game?mode=3d&matchmaking=pvp)
+	// get mode from URL hash (ex : #game?mode=3d&matchmaking=pvp)
 	let mode = "2d";
 	const hash = window.location.hash;
 	const paramsMatch = hash.match(/\?(.*)$/);
@@ -43,10 +43,10 @@ export async function gameController() {
 		}
 	}
 
-	// Affiche l'info de connexion
+	// display connexion info
 	playerInfo.textContent = `Connexion en mode ${mode.toUpperCase()}...`;
 
-	// Charge Babylon si besoin
+	// load Babylon if needed
 	if (mode === "3d") {
 		try {
 			await loadBabylonScriptIfNeeded();
@@ -57,7 +57,7 @@ export async function gameController() {
 		}
 	}
 
-	// Charge le module JS adapte
+	// load good js module
 	const modulePath = mode === '3d' ? '/frontend/pong3d.js' : '/frontend/pong2d.js';
 
 	try {
@@ -75,9 +75,8 @@ export async function gameController() {
 		playerInfo.textContent = "Erreur lors du chargement du jeu.";
 	}
 
-	/**
-	 * Fonction de cleanup à retourner pour le router
-	 */
+	// cleanup function we have to return in router
+	
 	return function cleanup() {
 		if (gameModule && typeof gameModule.cleanupGame === "function") {
 			gameModule.cleanupGame();

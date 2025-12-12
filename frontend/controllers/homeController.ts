@@ -13,7 +13,7 @@
 import { isTokenValid } from "./controllersUtils.js";
 
 export async function homeController() {
-	// Verification du token AVANT tout le reste
+	// Check token before everything
 	if (!(await isTokenValid())) 
 		return;
 
@@ -52,7 +52,7 @@ export async function homeController() {
 
 	if (btnTournament) {
 		btnTournament.addEventListener('click', async () => {
-			window.location.hash = `tournament`; // Redirige sur la page tournoi
+			window.location.hash = `tournament`; // redirection to tournament page
 		});
 	}
 }

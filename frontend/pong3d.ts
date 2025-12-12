@@ -18,7 +18,7 @@ let babylonScene: BABYLON.Scene | null = null;
 let keydownHandler: ((event: KeyboardEvent) => void) | null = null;
 let keyupHandler: ((event: KeyboardEvent) => void) | null = null;
 
-// === CHARGEMENT Babylon + GUI ===
+// loading Babylon + GUI 
 function loadBabylonWithGUI() {
 	return new Promise((resolve, reject) => {
 		function loadScript(src: string) {
@@ -44,7 +44,7 @@ function loadBabylonWithGUI() {
 	});
 }
 
-// variable et game state
+// variable and game state
 let wsMatchmaking: WebSocket | null = null;
 let wsGame: WebSocket | null = null;
 
@@ -63,11 +63,8 @@ let endInfo: { winner: string } | null = null;
 let pauseInfo: { scorer?: string, until?: number } | null = null;
 let pauseTimerInterval: any = null;
 
-// gestion websocket et imput
 
-
-
-// Nettoie les sockets et l’etat (à appeler avant de quitter la page de jeu)
+// clean socket and game state
 export function cleanupGame() {
 	if (typeof wsGame !== "undefined" && wsGame) {
 		if (wsGame.readyState === WebSocket.OPEN || wsGame.readyState === WebSocket.CONNECTING) {
@@ -110,7 +107,7 @@ export function cleanupGame() {
 	}
 }
 
-// === INITIALISATION DU JEU (main entry) ===
+// initialisation
 export async function initGame() {
 	const BABYLON = await loadBabylonWithGUI() as any;
 
@@ -121,7 +118,7 @@ export async function initGame() {
 	canvasElement.width = WIDTH;
 	canvasElement.height = HEIGHT;
 
-	// Recup params URL
+	// get url
 	let hash = window.location.hash;
 	let paramsMatch = hash.match(/\?(.*)$/);
 	let params: URLSearchParams;
@@ -139,7 +136,7 @@ export async function initGame() {
 	let token = localStorage.getItem('jwt') || '';
 	let isTournament = params.has('tournament');
 
-	// Connexion directe à la room si tournoi
+	// room connexion if tournament
 	if (isTournament && params.has('room')) {
 		const roomId = params.get('room');
 		if (!roomId) 
@@ -187,7 +184,7 @@ export async function initGame() {
 	};
 }
 
-// gestion websocket de jeu
+// game websocket management
 function startGameWS(
 	roomId: string,
 	side: "left" | "right" | null,
@@ -202,7 +199,7 @@ function startGameWS(
 	console.log("[PONG3D] Ouverture WS game:", gameWSURL);
 	wsGame = new WebSocket(gameWSURL);
 
-	// gestion websocket matchmaking
+	// websocket matchmaking management
 	wsGame.onopen = function () {
 		console.log('[PONG3D] WebSocket game ouvert:', gameWSURL);
 		wsGame!.send(JSON.stringify({ type: "ready" }));
@@ -235,11 +232,11 @@ function startGameWS(
 				messageText.text = "";
 		}
 
-		// affiche overlay + timer
+		// display overlay + timer
 		if (msg.type === "pause") {
 			isPaused = true;
 			pauseInfo = { scorer: msg.scorer, until: msg.until };
-			// ENVOIE "ready" si tu es connecte au moment de la pause
+			// ready message
 			if (wsGame && wsGame.readyState === WebSocket.OPEN) {
 				wsGame.send(JSON.stringify({ type: "ready" }));
 			}
@@ -257,7 +254,7 @@ function startGameWS(
 				}
 			}, 250);
 		}
-		// on enleve overlay et timers
+		// remove overlay and timers
 		if (msg.type === "resume") {
 			isPaused = false;
 			pauseInfo = null;
@@ -266,7 +263,7 @@ function startGameWS(
 				messageText.text = "";
 			}
 		}
-		// affiche winner, puis redirige
+		// display winner + redirect
 		if (msg.type === "end") {
 			isPaused = true;
 			endInfo = { winner: msg.winner };
@@ -283,23 +280,23 @@ function startGameWS(
 				else window.location.hash = 'home';
 			}, 2800);
 		}
-		// update du game state
+		// update game state
 		if (msg.state) {
 			gameState = msg.state;
 		}
 	};
 
-	// dessin 3d
+	// drawing 3d
 	setupBabylonScene(BABYLON, canvas);
 
-// Envoie input au serveur (uniquement si la game est active)
-		// gestion des input et envoi au serveur
+// send input to serv if game started
+		// local management
 	const isLocalMode = (matchmaking === "local");
 
-		// Variables pour online (1 joueur sur ce clavier)
+		// local variables (1 player)
 	let keyUp = false, keyDown = false;
 
-		// Variables pour local (2 joueurs sur ce clavier)
+		// online variables ( 2 players)
 	let keyUpLeft = false, keyDownLeft = false;
 	let keyUpRight = false, keyDownRight = false;
 
@@ -316,7 +313,7 @@ function startGameWS(
 			else {
 				wsGame.send(JSON.stringify({
 					player: playerSide,
-					input: { up: keyUp, down: keyDown } // si pas localmode 1 seule key a envoyer
+					input: { up: keyUp, down: keyDown } // if onlyne only 1 key
 				}));
 			}
 		}

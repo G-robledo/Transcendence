@@ -15,18 +15,18 @@ import { stopHeartbeat } from "./controllers/controllersUtils.js";
 
 export class Router {
 	routes: any;
-	lastCleanup: (() => void) | null = null; // stocke la dernière fonction de cleanup
+	lastCleanup: (() => void) | null = null; // stock last cleanup function
 
 	constructor(routes: any) {
 		this.routes = routes;
 		setupNavListeners();
 		window.addEventListener('hashchange', this.handleRouteChange.bind(this));
-		window.addEventListener('DOMContentLoaded', this.handleRouteChange.bind(this)); // affiche la bonne route au chargement de la page
+		window.addEventListener('DOMContentLoaded', this.handleRouteChange.bind(this)); // display good route when page is loading
 	}
 
 	async handleRouteChange() {
 		updateNavigation();
-		// appelle cleanup de la page html precedente si il existe
+		// call cleanup function of last html if exist
 		if (typeof this.lastCleanup === "function") {
 			try { 
 				this.lastCleanup(); 
@@ -36,17 +36,17 @@ export class Router {
 			}
 			this.lastCleanup = null;
 		}
-		// recup hash de la nouvelle route
+		// get hash new route
 		let hash = window.location.hash.slice(1) || '';
 		if (hash === '') {
-			// Redirige vers home si aucun hash
+			// redirect to home if no hash
 			window.location.hash = 'home';
 			return;
 		}
-		// cherche la bonne route
+		// search good route
 		const [routeKey] = hash.split('?');
 		const route = this.routes[routeKey];
-		// recupere le body html de la bonne page
+		// get body from the associated page
 		const content = document.getElementById('content');
 		if (!content) 
 			return;
@@ -55,7 +55,7 @@ export class Router {
 			const res = await fetch(route.html);
 			content.innerHTML = await res.text();
 			if (typeof route.controller === 'function') {
-				console.log('Appel du controller:', route.controller.name); // appelle le controller de la focntion
+				console.log('Appel du controller:', route.controller.name); // call controller's function
 				const cleanup = await route.controller();
 				if (cleanup && typeof cleanup === "function") {
 					this.lastCleanup = cleanup;
@@ -71,7 +71,7 @@ export class Router {
 	}
 }
 
-// gere l'affichage de la barre de navigation en haut
+// manage navigation bar display
 function updateNavigation() {
 	const nav = document.getElementById('main-nav');
 	if (!nav) 
@@ -86,7 +86,7 @@ function updateNavigation() {
 	}
 }
 
-// gere l'affichage de l'avatar + pseudo
+// manage username + avatar
 export async function updateNavUserbox() {
 	const navUserbox = document.getElementById('nav-userbox') as HTMLElement;
 	const navAvatar  = document.getElementById('nav-avatar') as HTMLImageElement;
@@ -122,7 +122,7 @@ export async function updateNavUserbox() {
 	}
 }
 
-// met en place les event de click sur tout les element de la navbar
+// manage click events on nav bar
 function setupNavListeners() {
 	const navHome     = document.getElementById('nav-home');
 	const navHistory  = document.getElementById('nav-history');
@@ -152,16 +152,16 @@ function setupNavListeners() {
 			}
 			localStorage.removeItem('jwt');
 			stopHeartbeat();
-			window.location.hash = 'login'; // updateNavigation va tout cacher
+			window.location.hash = 'login'; // updateNavigation hide all
 
-			// Cache la userbox (avatar + pseudo) directement après deconnexion (securite la barre de nav le fais deja)
+			// security if nav bar don't hide userbox properly
 			const userbox = document.getElementById('nav-userbox');
 			if (userbox) 
 				userbox.style.display = 'none';
 		});
 	}
 
-	// Toujours mettre à jour la userbox lors du setup nav (ex: après reload)
+	// always updtate userbox after nav setup when reloading page
 	updateNavUserbox();
 }
 

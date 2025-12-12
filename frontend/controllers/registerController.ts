@@ -46,7 +46,7 @@ export function registerController() {
 				return;
 			}
 			
-			// on cree le user dans la db
+			// create username in db
 			try {
 				const res = await fetch('/api/users', {
 					method: 'POST',

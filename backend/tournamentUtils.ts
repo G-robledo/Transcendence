@@ -14,7 +14,7 @@ import { Match, slots, Slot } from "./tournament";
 import { dbPromise } from './database';
 import jwt from 'jsonwebtoken';
 
- // on ajoute a la db +1 pour la personne qui a win le tournois
+ // add win to db
 export async function importWinnerIndb(match: Match) {
 	const db = await dbPromise;
 	const winner = match.winner;
@@ -26,12 +26,11 @@ export async function importWinnerIndb(match: Match) {
 	}
 }
 
-// si joueur = bot on donne juste le nom
+// if winner = bot just get name
 export function pruneSlot(slot: { name: string; isBot: boolean }): { name: string; isBot: boolean } {
 	return { name: slot.name, isBot: slot.isBot };
 } 
 
-// permet de delete tout ce qui n'est pas necessaire pour broadcast les infos aux clients
 export function pruneMatch(match: Match): any {
 	return {
 		id: match.id,
@@ -45,7 +44,7 @@ export function pruneMatch(match: Match): any {
 	};
 } 
 
-// broadcast le bracket a tous les joueurs connecte a la page tournois
+// broadcast bracket to any person on tournament page
 export function broadcastBracket(slots: Slot[], bracket: Match[] | null, finalMatch: Match | null, tournamentSockets: any[]) {
 	const safeSlots = slots.map(pruneSlot);
 	const safeBracket = bracket ? bracket.map(pruneMatch) : [];
@@ -68,7 +67,7 @@ export function broadcastBracket(slots: Slot[], bracket: Match[] | null, finalMa
 	}
 }
 
-// broadcast pour gerer les slots pareils que pour bracket on enleve ws et tout ce qui sert pas au client
+// slot gestion and remove everything useless
 export function broadcastSlots(slots: Slot[], tournamentSockets: any[]) {
 	const safeSlots = slots.map(pruneSlot);
 	for (const ws of tournamentSockets) {
@@ -78,7 +77,7 @@ export function broadcastSlots(slots: Slot[], tournamentSockets: any[]) {
 	}
 }
 
-//fonction de shuffle pour les users 
+//shuffle function
 export function shuffle<T>(arr: T[]): T[] {
 	const a = arr.slice();
 	for (let i = a.length - 1; i > 0; i--) {
@@ -90,7 +89,7 @@ export function shuffle<T>(arr: T[]): T[] {
 	return a;
 }
 
-// on recupere le nom du joueur dans le token JWT
+// get username in JWT
 export function getUsernameFromToken(token?: string): string | null {
 	try {
 		if (!token) 
@@ -103,7 +102,7 @@ export function getUsernameFromToken(token?: string): string | null {
 	catch { return null; }
 }
 
-// on choisit random un gagnant de match bot vs bot
+// choose randomly winner in bot vs bot
 export function autoResolveBotMatch(match: Match, broadcastBracketFn: () => void, handleFinalsUpdateFn: (match: Match) => void) {
 	if (match.p1.isBot && match.p2.isBot) {
 		const winner = Math.random() < 0.5 ? match.p1.name : match.p2.name;

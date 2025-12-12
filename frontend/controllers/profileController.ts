@@ -33,7 +33,7 @@ export async function profileController(): Promise<void> {
 	const jwtUsername: string = tokenPayload.username;
 	const jwtUserId: number = tokenPayload.userId;
 
-	// Recupère le username à afficher (moi ou un autre)
+	// get username to display
 	let urlUsername: string | null = null;
 	const hash = window.location.hash;
 	const match = hash.match(/profile\?u=([^&]+)/);
@@ -48,7 +48,7 @@ export async function profileController(): Promise<void> {
 		const token: string | null = localStorage.getItem('jwt');
 		let res: Response;
 		if (!urlUsername || urlUsername === jwtUsername) {
-			// Mon propre profil
+			// connected player profile
 			res = await fetch('/api/me', {
 				headers: { 'Authorization': 'Bearer ' + token }
 			});
@@ -58,7 +58,7 @@ export async function profileController(): Promise<void> {
 			isMyProfile = true;
 		} 
 		else {
-			// Profil d'un autre utilisateur
+			// other player profile
 			res = await fetch('/api/profile/' + encodeURIComponent(urlUsername), {
 				headers: { 'Authorization': 'Bearer ' + token }
 			});
@@ -75,7 +75,7 @@ export async function profileController(): Promise<void> {
 	if (profile === null) 
 		return;
 
-	// Selecteurs DOM
+	//  DOM selector
 	const avatar = document.getElementById('profile-avatar') as HTMLImageElement | null;
 	const usernameElem = document.getElementById('profile-username');
 	const editAvatarBtn = document.getElementById('edit-avatar-btn') as HTMLButtonElement | null;
@@ -87,7 +87,7 @@ export async function profileController(): Promise<void> {
 	const avatarInput = document.getElementById('avatar-input') as HTMLInputElement | null;
 	const gdprBtn = document.getElementById('gdpr-link-btn') as HTMLButtonElement | null;
 
-	// === Affichage avatar ===
+	// avatar display
 	if (avatar) {
 		if (profile.userId === 1) {
 			avatar.src = "/avatars/avatar_deleted.png";
@@ -107,7 +107,7 @@ export async function profileController(): Promise<void> {
 		usernameElem.textContent = profile.username || '';
 	}
 
-	// Affiche/cache les boutons et zones d'edition
+	// display/hide buttons and edit zones
 	if (editAvatarBtn) {
 		if (isMyProfile) 
 			editAvatarBtn.classList.remove('hidden');
@@ -124,9 +124,9 @@ export async function profileController(): Promise<void> {
 		else extraActions.classList.add('hidden');
 	}
 
-	// Ajout des listeners seulement si c'est le profil correspondant au JWT
+	// add listeners if it's player connected profile
 	if (isMyProfile) {
-		// gestion avatars
+		// avatar management
 		if (editAvatarBtn && avatarInput) {
 			editAvatarBtn.onclick = () => {
 				avatarInput.value = "";
@@ -188,7 +188,7 @@ export async function profileController(): Promise<void> {
 			};
 		}
 
-		// changement d'username
+		// change username
 		if (editUsernameBtn) {
 			editUsernameBtn.onclick = async function () {
 				const newUsername: string | null = prompt("Nouveau pseudo :", profile.username);
@@ -237,7 +237,7 @@ export async function profileController(): Promise<void> {
 			};
 		}
 
-		// changement de mot de passe
+		// change password
 		const changePwdBtn = document.getElementById('change-password-btn') as HTMLButtonElement | null;
 		if (changePwdBtn) {
 			changePwdBtn.onclick = async function () {
@@ -290,7 +290,7 @@ export async function profileController(): Promise<void> {
 			};
 		}
 
-		// activation desactivation 2fa
+		// activation/desactivation 2fa
 		if (activate2faBtn) {
 			if (profile.has2fa) {
 				activate2faBtn.textContent = "Desactiver la double authentification";
@@ -327,7 +327,7 @@ export async function profileController(): Promise<void> {
 			}
 		}
 
-		// suppression de compte
+		// delete account
 		if (deleteAccountBtn) {
 			deleteAccountBtn.onclick = async function () {
 				if (!confirm("Es-tu sûr de vouloir supprimer ton compte? Cette action est irreversible.")) {

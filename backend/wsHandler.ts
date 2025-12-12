@@ -19,7 +19,7 @@ import { startBot, stopBot } from './ia-pong.js';
 import jwt from 'jsonwebtoken';
 import fastifyWebsocket from "@fastify/websocket";
 
-// TYPES ET CONFIG
+// TYPES and CONFIG
 export const config: GameConfig = {
 	width: 1280,
 	height: 640,
@@ -64,9 +64,9 @@ export async function gameWebSocket(app: FastifyInstance) {
 		let mode: string = 'pvp';
 
 		if (query.mode)
-			mode = query.mode; // si on a un mode rentre on l'attribue a mode sinon mode par default
+			mode = query.mode; // if mode is not default
 
-		if (token) { // on va ouvrir deux socket sans changer de pages donc on verifie le token pendant les changement
+		if (token) { // check token when opening socket because page is not refreshed
 			try {
 				const payload = jwt.verify(token, process.env.JWT_SECRET!);
 				if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'username')) {
@@ -78,15 +78,15 @@ export async function gameWebSocket(app: FastifyInstance) {
 			}
 		}
 		if (!username)
-			username = "Anonyme"; // empeche un blocage pour username null ne devrait jamais arriver
+			username = "Anonyme"; // fix null username crash
 
-		//jeu local
+		//local
 		if (mode === "local") {
 			const roomId: string = "local-" + Math.random().toString(36).slice(2, 10);
 			rooms[roomId] = {
 				game: new Game(config),
 				clients: [
-					{ id: 'left', username: 'Joueur1', socket: socket },   // le même socket va gérer les deux
+					{ id: 'left', username: 'Joueur1', socket: socket },   // same socket for every players
 					{ id: 'right', username: 'Joueur2', socket: socket }
 				],
 				inputs: {
@@ -97,11 +97,11 @@ export async function gameWebSocket(app: FastifyInstance) {
 				lastScore: { left: 0, right: 0 },
 				lastScorer: null
 			};
-			// on notifie le front
+			// notify cliert
 			socket.send(JSON.stringify({
 				type: "match_found",
 				roomId: roomId,
-				side: "left", // peu importe, il gère les deux
+				side: "left", // default setting socket manage the 2 sides
 				opponent: "local",
 				local: true
 			}));
@@ -109,17 +109,17 @@ export async function gameWebSocket(app: FastifyInstance) {
 			return;
 		}
 
-		// reconnexion a une room contre un bot 
+		// reconnexion room vs bot
 		if (mode === 'bot') {
 			let soloRoomId: string | null = null;
 			let existingPlayerSide: PlayerId | null = null;
 			for (const [id, room] of Object.entries(rooms)) {
 				if (id.startsWith('solo-')) {
-					const client = room.clients.find(c => c.username === username); // check pour faire matcher l'username avec celui d'une partie
+					const client = room.clients.find(c => c.username === username); // try to match username with a game already started
 					if (client) {
 						soloRoomId = id;
-						existingPlayerSide = client.id; // si ca matche reqattribue son idee de salle et
-						client.socket = socket; // on lui reassigne la socket
+						existingPlayerSide = client.id; // if matching relocate room
+						client.socket = socket; // reassign same socket
 						if (room.disconnectTimer) {
 							clearTimeout(room.disconnectTimer);
 							room.disconnectTimer = undefined;
@@ -130,7 +130,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 					}
 				}
 			}
-			if (soloRoomId && existingPlayerSide) { // on redonne toute les infos de la room au client
+			if (soloRoomId && existingPlayerSide) { // give back all info to client
 				socket.send(JSON.stringify({
 					type: "match_found",
 					roomId: soloRoomId,
@@ -142,10 +142,10 @@ export async function gameWebSocket(app: FastifyInstance) {
 			}
 
 			let botSide: PlayerId = Math.random() < 0.5 ? 'left' : 'right';
-			let newPlayerSide: PlayerId = botSide === 'left' ? 'right' : 'left'; // random pour pas que le bot soit toujours du meme cote
-			const roomId: string = "solo-" + Math.random().toString(36).slice(2, 10); // generatioon de la room id on enleve les premiers caracteres pour se debarasser du 0. et avoir une chaine un peu plus courte
+			let newPlayerSide: PlayerId = botSide === 'left' ? 'right' : 'left'; // random, bot is not always on the same side
+			const roomId: string = "solo-" + Math.random().toString(36).slice(2, 10); // create id room cut start to avoid 0X in id
 
-			rooms[roomId] = { // si pas de room on cree une nouvelle config
+			rooms[roomId] = { // if room not find create a new game
 				game: new Game(config),
 				clients: [{ id: newPlayerSide, username: username, socket: socket }],
 				inputs: {
@@ -158,7 +158,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 				botSide: botSide
 			};
 
-			startBot(roomId, rooms[roomId], botSide, config); // game vs bot donc on le demarre et on envoie tout au client
+			startBot(roomId, rooms[roomId], botSide, config); // game vs bot start and send everything to client
 
 			console.log(`[SOCKET][MATCHMAKING][NOUVEAU] ${username} VS bot dans la room ${roomId}`);
 			socket.send(JSON.stringify({
@@ -171,12 +171,12 @@ export async function gameWebSocket(app: FastifyInstance) {
 			return;
 		}
 
-		// si on a une partie solo en cours mais qu'on veut passer a un matchmaking on supprime la room solo
+		// if already in a vs bot game but want to play matchmaking delete solo game
 		for (const [id, room] of Object.entries(rooms)) {
 			if (id.startsWith('solo-')) {
 				const clientIdx = room.clients.findIndex(c => c.username === username);
 				if (clientIdx !== -1) {
-					// Detruit la room solo SANS pitie (tu pourrais aussi save son score etc)
+					// Delete solo room
 					if (room.botSide !== undefined) stopBot(id);
 					delete rooms[id];
 					console.log(`[SOCKET][MATCHMAKING][CLEAN] Room solo supprimee pour ${username} avant matchmaking`);
@@ -184,24 +184,24 @@ export async function gameWebSocket(app: FastifyInstance) {
 			}
 		}
 
-		// on a plus que les parties pvp a gerer
+		// pvp gestion
 		let alreadyInRoom: string | null = null;
 		let playerSide: PlayerId | null = null;
 
-		// meme principe que contre un bot, si deja dans une room on reassocie tout
+		// link everything as for bot
 		for (const [id, room] of Object.entries(rooms)) {
 			for (const client of room.clients) {
 				if (client.username === username) {
 					alreadyInRoom = id;
 					playerSide = client.id;
-					if (client.socket && client.socket !== socket) { // si le client a une socket differente de la nouvelle connexion on la ferme correctement pour eviter les double connexions
+					if (client.socket && client.socket !== socket) { // if socket already exist for a player close it properly
 						console.log(`[SOCKET][MATCHMAKING][CLOSE] Fermeture ancienne socket de ${username} sur la room ${id}`);
 						try {
 							client.socket.close();
 						} catch (event) {}
 					}
-					client.socket = socket; // update la reference de la nouvelle socket
-					if (room.disconnectTimer) { // gestion pause
+					client.socket = socket; // update la reference of new socket
+					if (room.disconnectTimer) { // pause gestion
 						clearTimeout(room.disconnectTimer);
 						room.disconnectTimer = undefined;
 						room.isPaused = false;
@@ -210,10 +210,10 @@ export async function gameWebSocket(app: FastifyInstance) {
 					break;
 				}
 			}
-			if (alreadyInRoom) break; // si le joueur a ete retrouve on break la boucle for
+			if (alreadyInRoom) break; // sif player found break loop
 		}
 
-		// on redonne tout les infos au client pour la reconnexion
+		// give back every infos to reconnect
 		if (alreadyInRoom && playerSide) {
 			let opponentName: string = rooms[alreadyInRoom].clients.find(c => c.id !== playerSide)?.username || "inconnu";
 			let isBot: boolean = !!rooms[alreadyInRoom].botSide;
@@ -227,18 +227,18 @@ export async function gameWebSocket(app: FastifyInstance) {
 			return;
 		}
 
-		// si personne en file d'attente on ajoute le joueur qui arrive dans le matchmaking
+		// if no one in matchmaking add player to matchmaking list
 		if (waitingPlayers.length === 0) {
 			waitingPlayers.push({ username: username, socket: socket, token: token });
 			socket.send(JSON.stringify({ type: "waiting" }));
 			console.log(`[SOCKET][MATCHMAKING][WAIT] ${username} entre en attente.`);
 		}
-		// si deja quelqu'un dans la file d'attente on leur associe une room
+		// if already a player in matchmaking link a new room to the 2 players
 		else {
-			const opponent = waitingPlayers.shift(); // on supprime de la file d'attente le joueur qui y etait
-			let roomId: string = "room-" + Math.random().toString(36).slice(2, 10); // generation d'id de room
+			const opponent = waitingPlayers.shift(); // delete player from matchmaking list
+			let roomId: string = "room-" + Math.random().toString(36).slice(2, 10); // create room id
 
-			// on cree une nouvelle config
+			// create new config
 			rooms[roomId] = {
 				game: new Game(config),
 				clients: [
@@ -254,16 +254,16 @@ export async function gameWebSocket(app: FastifyInstance) {
 				lastScorer: null
 			};
 
-			// on envoie tout aux clients
+			// broadcast to client
 			console.log(`[SOCKET][MATCHMAKING][MATCH] Match trouve : ${opponent!.username} (left) VS ${username} (right) dans la room ${roomId}`);
 			opponent!.socket.send(JSON.stringify({ type: "match_found", roomId: roomId, side: 'left', opponent: username }));
 			socket.send(JSON.stringify({ type: "match_found", roomId: roomId, side: 'right', opponent: opponent!.username }));
 		}
 
-		// si on a une deconnexion on check les rooms pour trouver sa socket pour la mettre a null et avoir une deco propre
+		// if deconnexion  check  rooms to find socket and set it to null to properly close it
 		socket.on('close', () => {
 			console.log('[SOCKET][MATCHMAKING][CLOSE] Socket matchmaking fermee.');
-			waitingPlayers = waitingPlayers.filter(player => player.socket !== socket); // si il etaitr dans la file d'attente on le supprime
+			waitingPlayers = waitingPlayers.filter(player => player.socket !== socket); // if player was not in game but in matchmaking delete from list
 			for (const room of Object.values(rooms)) {
 				for (const client of room.clients) {
 					if (client.socket === socket) {
@@ -275,14 +275,14 @@ export async function gameWebSocket(app: FastifyInstance) {
 		});
 	});
 
-	app.get<{ Params: { roomId: string } }>('/ws/:roomId', { websocket: true }, (socket: WebSocket, req: FastifyRequest<{ Params: { roomId: string } }>) => { // socket principale qui s'occupe du jeu
+	app.get<{ Params: { roomId: string } }>('/ws/:roomId', { websocket: true }, (socket: WebSocket, req: FastifyRequest<{ Params: { roomId: string } }>) => { // main socket wich manage game
 		const roomId: string = req.params.roomId;
 		const token: string = (req.query as any).token;
 		let username: string = '';
 
 		console.log(`[SOCKET][ROOM][OPEN] Connexion à la room ${roomId}`);
 
-		if (token) { // re check de socket parce qu'aucun refresh entre matchmaking et lancement de jeu
+		if (token) { // no refresh -> check JWT
 			try {
 				const payload = jwt.verify(token, process.env.JWT_SECRET!);
 				if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'username')) {
@@ -293,9 +293,9 @@ export async function gameWebSocket(app: FastifyInstance) {
 			}
 		}
 		if (!username)
-			username = "Anonyme"; // bloque pas la salle si pas d'user ne doit toujours jamais arriver
+			username = "Anonyme"; // avoid room lock
 
-		// check si la room existe bien cote serveur
+		// check back to see if room exist
 		const room = rooms[roomId];
 		if (!room) {
 			socket.send(JSON.stringify({ type: "error", message: "Room introuvable" }));
@@ -304,7 +304,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 			return;
 		}
 
-		// on attribue les sides aux joueurs. si quelqu'un de connecte mais pas joueur on lui attribue spectator
+		// allocate sides to players. if another than player connect give spectator side
 		let side: PlayerId | 'spectator' = 'spectator';
 		let clientFound: { id: PlayerId; username: string; socket: WebSocket | null } | undefined = undefined;
 
@@ -317,20 +317,20 @@ export async function gameWebSocket(app: FastifyInstance) {
 		}
 
 		if (side === 'spectator' && roomId.startsWith('local-')) {
-			// Matchmaking local : assigne toujours le joueur côté 'left'
+			// local matchmaking  : default side
 			side = 'left';
 			clientFound = room.clients.find(c => c.id === 'left');
 		}
 
 
-		// bloc pour le refresh, si joueur actif et pas bot on reassocie une socket
+		// if refresh page
 		if (side !== 'spectator' && clientFound !== undefined) {
 			clientFound.socket = socket;
 			console.log(`[SOCKET][ROOM][OPEN] ${username} connecte/reconnecte à la room ${roomId} (${side})`);
 			const isBotGame: boolean = !!room.botSide;
 			const realActivePlayers = room.clients.filter(c => (c.id === 'left' || c.id === 'right') && c.socket !== null);
 
-			// check si tous les joueurs qui sont sense etre dans la room sont bien la
+			// check if everyone here
 			// let shouldResume: boolean = false;
 			// if (isBotGame) {
 			// 	if (realActivePlayers.length === 1)
@@ -341,7 +341,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 			// 		shouldResume = true;
 			// }
 
-			// // si on a tout le monde on enleve la pause
+			// // if everyone remove pause
 			// if (shouldResume && room.isPaused) {
 			// 	room.isPaused = false;
 			// 	room.pauseUntil = undefined;
@@ -359,13 +359,13 @@ export async function gameWebSocket(app: FastifyInstance) {
 		}
 		socket.send(JSON.stringify({ type: 'init', player: side }));
 
-		// si un des joueurs se reconnecte mais pas l'autre on lui notifie qu'il est toujours en pause pendant le temps qui reste
+		// if one player reconnect but the other not notify time left to the one in game
 		if (room.isPaused && room.pauseUntil) {
 			console.log(`[SOCKET][ROOM][PAUSE] ${username} reconnecte en pause: until=${room.pauseUntil}`);
 			socket.send(JSON.stringify({ type: "pause", until: room.pauseUntil }));
 		}
 
-		// gestion  des messages envoyes par le client
+		// manage message sent by client
 		socket.on('message', (msg: WebSocket.RawData) => {
 			try {
 				if (side === 'spectator')
@@ -377,7 +377,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 					return; // Ignore invalid JSON
 				}
 
-				//message ready envoye pour sortir de la pause si tous le monde a envoye ready on sort de la pause ( pas de bug de pause )
+				//message ready sent to server. if everyone ready resume game
 				if (data && data.type === "ready") {
 					if (!room._ready) room._ready = new Set();
 					room._ready.add(username);
@@ -386,7 +386,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 					const playerCount = realPlayers.length;
 					const connectedPlayers = realPlayers.filter(c => c.socket !== null);
 
-					// Si tous les joueurs attendus sont revenus et ont envoyé "ready"
+					// if everyone ready
 					if (room._ready.size >= playerCount && connectedPlayers.length === playerCount) {
 						room.isPaused = false;
 						room.pauseUntil = undefined;
@@ -402,20 +402,19 @@ export async function gameWebSocket(app: FastifyInstance) {
 							}
 						}
 					}
-					// Sinon : on attend soit d'autres "ready", soit la fin du timeout
 					return;
 				}
 
-				// Sinon message normal (inputs)
+				// else normal message (inputs)
 				if (data.inputs && typeof data.inputs === 'object') {
-					// MODE LOCAL : mettre à jour les deux côtés en même temps
+					// local mode : update at the same time the 2 sides
 					if ('left' in data.inputs && 'right' in data.inputs) {
 						room.inputs.left = data.inputs.left;
 						room.inputs.right = data.inputs.right;
 					}
 				} 
 				else {
-					// MODE ONLINE/BOT
+					//ONLINE/BOT mode
 					const input: InputMessage = data;
 					if (input.player === side && (side === 'left' || side === 'right')) {
 						room.inputs[side] = input.input;
@@ -427,7 +426,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 			}
 		});
 
-		// pareil que pour matchmaking si deco on cherche la socket du joueur concerne on la met a null
+		// if deco set tocket to null
 		socket.on('close', () => {
 			console.log(`[SOCKET][ROOM][CLOSE] Fermeture socket dans room ${roomId} (${username})`);
 			const client = room.clients.find(c => c.socket === socket);
@@ -441,7 +440,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 			const isSoloVsBot: boolean = !!room.botSide;
 			const shouldPause: boolean =(room.gameStarted && ((isSoloVsBot && activePlayers.length === 0) ||(!isSoloVsBot && activePlayers.length === 1)));
 
-			// on pause 30 secondes en cas de deco pour permettre la reco
+			// pause 30 second to wait reco
 			if (shouldPause) {
 				console.log(`[SOCKET][ROOM][PAUSE] Pause déclenchée, timer dans room ${roomId}`);
 				room.isPaused = true;
@@ -453,7 +452,7 @@ export async function gameWebSocket(app: FastifyInstance) {
 						client.socket.send(JSON.stringify({ type: "pause", until }));
 					}
 				}
-				// si on arrive a la fin du timer on determine le gagnant et on clean la room
+				// if time out declare winner and delete room
 				if (room.disconnectTimer)
 					clearTimeout(room.disconnectTimer);
 				room.disconnectTimer = setTimeout(() => {

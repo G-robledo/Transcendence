@@ -19,7 +19,7 @@ export async function twoFaSetupController() {
 
 	if (!(await isTokenValid())) return;
 
-	// on recupere tous les element html dont le controller va avoir besoin
+	// get all html element
 	const btn = document.getElementById('activate2fa');
 	const qrContainer = document.getElementById('qrcode-container');
 	const qrElem = document.getElementById('qrcode');
@@ -34,7 +34,7 @@ export async function twoFaSetupController() {
 		return;
 	}
 
-	// si click sur le boton 2fa on genere le qr code
+	// if click on 2fa create qr code
 	btn.addEventListener('click', async () => {
 		const btn = document.getElementById('activate2fa') as HTMLButtonElement | null;
 		if (btn) {
@@ -72,7 +72,7 @@ export async function twoFaSetupController() {
 		}
 	});
 
-	// on rentre le code TOTP et on le check pour verifier si il est valide
+	// check if TOTP code is valid
 	form.addEventListener('submit', async (event) => {
 		event.preventDefault();
 		result.textContent = "";
@@ -95,7 +95,7 @@ export async function twoFaSetupController() {
 			});
 			const data = await res.json();
 			console.log("[2FA Front] Reponse reçue de /api/verify2fa:", data);
-			// si c'est bon on redirect vers profile
+			// if ok redirect to profile
 			if (res.ok && data.success) {
 				result.style.color = "green";
 				result.textContent = "2FA activee ! Redirection...";
@@ -103,7 +103,7 @@ export async function twoFaSetupController() {
 					window.location.hash = 'profile';
 				}, 1200);
 			} 
-			// sinon on previens que c'est pas le bon code
+			// else 
 			else {
 				result.style.color = "red";
 				result.textContent = data.error || "Code invalide.";
