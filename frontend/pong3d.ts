@@ -387,10 +387,10 @@ window.addEventListener('keyup', keyupHandler);
 
 }
 
-let messageText: any = undefined; // Accessible dans wsGame.onmessage pour le texte de pause
+let messageText: any = undefined;
 
 function setupBabylonScene(BABYLON: any, canvas: HTMLCanvasElement) {
-	// creation de la scene 
+	// creation scene 
 	babylonEngine = new BABYLON.Engine(canvas, true);
 	babylonScene = new BABYLON.Scene(babylonEngine);
 
@@ -403,32 +403,31 @@ function setupBabylonScene(BABYLON: any, canvas: HTMLCanvasElement) {
 	// });
 	// glowLayer.intensity = 0.50;
 
-	// recup couleur proche de celle du menu
 	const neonBlue = new BABYLON.Color3(0.38, 0.65, 0.98); // #60a5fa blue-400
 	const neonOutline = new BABYLON.Color3(0.14, 0.39, 0.92); // #2563eb blue-600
 
-	// Camera simple, vue de dessus
+	// top view camera
 	const camera = new BABYLON.FreeCamera('camera1', new BABYLON.Vector3(0, 0, -900), babylonScene);
 	camera.setTarget(BABYLON.Vector3.Zero());
 	camera.attachControl(canvas, true);
 	camera.speed = 15;
 
-	// Lumière blanche
+	// White light
 	const light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(1, 1, 0), babylonScene);
 	light.intensity = 0.6;
 
-	// Materiau neon bleu
+	// Neon blue material
 	const neonMat = new BABYLON.StandardMaterial('neonMat', babylonScene);
 	neonMat.diffuseColor = neonBlue;
 	neonMat.emissiveColor = neonBlue;
 	neonMat.specularColor = neonOutline;
 
-	// Materiau murs gris clair
+	// light gray material
 	const wallMat = new BABYLON.StandardMaterial('wallMat', babylonScene);
-	wallMat.diffuseColor = new BABYLON.Color3(0.18, 0.21, 0.26); // gris bleute
+	wallMat.diffuseColor = new BABYLON.Color3(0.18, 0.21, 0.26);
 	wallMat.emissiveColor = new BABYLON.Color3(0.18, 0.21, 0.26);
 
-	// Raquettes Pong neon
+	// pong neon racquet
 	const racquetLeft = BABYLON.MeshBuilder.CreateBox('racquetLeft', { height: RACQUET_HEIGHT, width: RACQUET_WIDTH, depth: 12 }, babylonScene);
 	racquetLeft.position.x = -WIDTH / 2 + RACQUET_WIDTH / 2 + WALL_THICKNESS / 2;
 	racquetLeft.position.z = 0;
@@ -445,14 +444,14 @@ function setupBabylonScene(BABYLON: any, canvas: HTMLCanvasElement) {
 	racquetRight.outlineColor = neonOutline;
 	racquetRight.renderOutline = true;
 
-	// Balle Pong neon
+	// pontg neon ball
 	const ball = BABYLON.MeshBuilder.CreateSphere('ball', { diameter: BALL_DIAMETER }, babylonScene);
 	ball.material = neonMat;
 	ball.outlineWidth = 2.0;
 	ball.outlineColor = neonOutline;
 	ball.renderOutline = true;
 
-	// Filet central neon (20 segments)
+	// central net neon (20 segments)
 	const netCount = 20;
 	const netHeight = 15;
 	for (let i = 0; i < netCount; i++) {
@@ -470,7 +469,7 @@ function setupBabylonScene(BABYLON: any, canvas: HTMLCanvasElement) {
 		netPiece.renderOutline = true;
 	}
 
-	// Sol retro style bleu/noir
+	// retro ground
 	const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: WIDTH, height: HEIGHT }, babylonScene);
 	const groundMat = new BABYLON.StandardMaterial("groundMat", babylonScene);
 	groundMat.diffuseColor = new BABYLON.Color3(0.07, 0.09, 0.18); // #101827
@@ -478,7 +477,7 @@ function setupBabylonScene(BABYLON: any, canvas: HTMLCanvasElement) {
 	ground.material = groundMat;
 	ground.position.z = -6;
 
-	// Murs Pong
+	// walls
 	const wallTop = BABYLON.MeshBuilder.CreateBox('wallTop', { width: WIDTH, height: WALL_THICKNESS, depth: WALL_DEPTH }, babylonScene);
 	wallTop.position.y = HEIGHT / 2;
 	wallTop.material = wallMat;
@@ -493,10 +492,10 @@ function setupBabylonScene(BABYLON: any, canvas: HTMLCanvasElement) {
 	wallBottom.outlineColor = neonOutline;
 	wallBottom.renderOutline = true;
 
-	// overlay GUI pour messages et score
+	// overlay GUI for messages and scores
 	const gui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
-	// Gestion du score style neon bleu
+	// score management
 	const scoreText = new BABYLON.GUI.TextBlock();
 	scoreText.color = "#60a5fa"; // blue-400
 	scoreText.outlineColor = "#2563eb"; // blue-600
@@ -508,7 +507,7 @@ function setupBabylonScene(BABYLON: any, canvas: HTMLCanvasElement) {
 	scoreText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
 	gui.addControl(scoreText);
 
-	// Messages overlay neon bleu
+	// message overlay
 	messageText = new BABYLON.GUI.TextBlock();
 	messageText.color = "#60a5fa";
 	messageText.outlineColor = "#2563eb";
@@ -522,7 +521,7 @@ function setupBabylonScene(BABYLON: any, canvas: HTMLCanvasElement) {
 	messageText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
 	gui.addControl(messageText);
 
-	// render 3d (update positions et score)
+	// render 3d (update positions and score)
 	if (babylonScene){
 		babylonScene.onBeforeRenderObservable.add(function () {
 			if (gameState === null) {
