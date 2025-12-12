@@ -56,7 +56,7 @@ export async function handleFinalsUpdate(match: Match) { // get finalist and cre
 				if (match.winner === match.p2.name) {
 					finalMatch.p1 = { ...match.p2 };
 					finalMatch.playerModes[match.winner] = match.playerModes[match.p2.name];
-					reassignPlayerWsEverywhere(match.winner, match.p1.ws);
+					reassignPlayerWsEverywhere(match.winner, match.p2.ws);
 				}
 				else {
 					finalMatch.p1 = { name: "…", ws: null, isBot: false }; // prevent crash
@@ -73,7 +73,7 @@ export async function handleFinalsUpdate(match: Match) { // get finalist and cre
 				if (match.winner === match.p2.name) {
 					finalMatch.p2 = { ...match.p2 };
 					finalMatch.playerModes[match.winner] = match.playerModes[match.p2.name];
-					reassignPlayerWsEverywhere(match.winner, match.p1.ws);
+					reassignPlayerWsEverywhere(match.winner, match.p2.ws);
 				}
 				else {
 					finalMatch.p2 = { name: "…", ws: null, isBot: false };
@@ -322,11 +322,13 @@ export async function tournamentWebSocket(app: FastifyInstance) { app.get('/ws/t
 					match = finalMatch;
 				}
 				if (match) {
-					if (name in match.playerModes) {
-						if (match.status === "waiting") {
-							match.playerModes[name] = msg.mode;
-							broadcastBracket(slots, bracket, finalMatch, tournamentSockets);
-						}
+					const isParticipant =
+						(!match.p1.isBot && match.p1.name === name) ||
+						(!match.p2.isBot && match.p2.name === name);
+
+					if (match.status === "waiting" && isParticipant) {
+						match.playerModes[name] = msg.mode;
+						broadcastBracket(slots, bracket, finalMatch, tournamentSockets);
 					}
 				}
 			} // waiting as long as player doesn't choose mode
